@@ -1,5 +1,58 @@
 import React, { useState } from 'react';
 import { FoodItem, Order, OrderStatus, FoodType, FoodCategory } from '../types';
+import { EditIcon } from './icons/Icons';
+
+interface EditItemModalProps {
+    item: FoodItem;
+    onSave: (updatedItem: FoodItem) => void;
+    onClose: () => void;
+}
+
+const EditItemModal: React.FC<EditItemModalProps> = ({ item, onSave, onClose }) => {
+    const [formData, setFormData] = useState<FoodItem>(item);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: name === 'price' ? parseFloat(value) : value }));
+    };
+
+    const handleSave = (e: React.FormEvent) => {
+        e.preventDefault();
+        onSave(formData);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in" style={{animationDuration: '200ms'}}>
+            <div className="bg-card-bg dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-lg">
+                <form onSubmit={handleSave}>
+                    <div className="p-6 border-b border-border-divider dark:border-gray-700">
+                        <h3 className="text-2xl font-bold text-secondary dark:text-gray-100">Edit: {item.name}</h3>
+                    </div>
+                    <div className="p-6 space-y-4">
+                        <div>
+                            <label htmlFor="name" className="block text-sm font-medium text-text-secondary dark:text-gray-300 mb-1">Name</label>
+                            <input type="text" id="name" name="name" value={formData.name} onChange={handleChange} className="w-full p-3 border border-border-divider dark:border-gray-600 rounded-md bg-neutral-bg dark:bg-gray-700" required />
+                        </div>
+                        <div>
+                            <label htmlFor="description" className="block text-sm font-medium text-text-secondary dark:text-gray-300 mb-1">Description</label>
+                            <textarea id="description" name="description" value={formData.description} onChange={handleChange} rows={3} className="w-full p-3 border border-border-divider dark:border-gray-600 rounded-md bg-neutral-bg dark:bg-gray-700" required />
+                        </div>
+                        <div>
+                            <label htmlFor="price" className="block text-sm font-medium text-text-secondary dark:text-gray-300 mb-1">Price (₹)</label>
+                            <input type="number" id="price" name="price" value={formData.price} onChange={handleChange} step="0.01" className="w-full p-3 border border-border-divider dark:border-gray-600 rounded-md bg-neutral-bg dark:bg-gray-700" required />
+                        </div>
+                    </div>
+                    <div className="p-6 bg-neutral-bg/50 dark:bg-gray-900/20 flex justify-end gap-4 rounded-b-lg">
+                        <button type="button" onClick={onClose} className="px-6 py-2 rounded-lg border border-border-divider dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 font-semibold">Cancel</button>
+                        <button type="submit" className="px-6 py-2 rounded-lg bg-primary text-white hover:bg-cta-hover font-semibold">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
 
 interface StaffDashboardProps {
     menuItems: FoodItem[];
@@ -13,8 +66,9 @@ interface StaffDashboardProps {
 const MenuManagement: React.FC<{ items: FoodItem[], updateFoodItem: (item: FoodItem) => void, addFoodItem: (item: Omit<FoodItem, 'id'>) => void }> = ({ items, updateFoodItem, addFoodItem }) => {
     
     const [showAddForm, setShowAddForm] = useState(false);
+    const [editingItem, setEditingItem] = useState<FoodItem | null>(null);
     const initialNewItemState = {
-        name: '', description: '', price: 0, image: `https://picsum.photos/seed/${Date.now()}/400/300`, type: FoodType.VEG,
+        name: '', description: '', price: 0, image: `https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop&q=60`, type: FoodType.VEG,
         category: [], nutrition: { calories: 0, protein: 0, carbs: 0 }, inStock: true
     };
     const [newItem, setNewItem] = useState<Omit<FoodItem, 'id' | 'rating'>>(initialNewItemState);
@@ -26,6 +80,14 @@ const MenuManagement: React.FC<{ items: FoodItem[], updateFoodItem: (item: FoodI
         setNewItem(initialNewItemState); // Reset form
     };
     
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            const tempImageUrl = URL.createObjectURL(file);
+            setNewItem({ ...newItem, image: tempImageUrl });
+        }
+    };
+
     return (
         <div className="bg-card-bg dark:bg-gray-800 p-6 rounded-lg shadow-md animate-fade-in">
             <div className="flex justify-between items-center mb-6">
@@ -42,7 +104,15 @@ const MenuManagement: React.FC<{ items: FoodItem[], updateFoodItem: (item: FoodI
                         <option value={FoodType.VEG}>Veg</option>
                         <option value={FoodType.NON_VEG}>Non-Veg</option>
                     </select>
-                     <input type="text" placeholder="Image URL" value={newItem.image} onChange={e => setNewItem({...newItem, image: e.target.value})} className="p-3 border border-border-divider dark:border-gray-600 rounded-md col-span-2 bg-card-bg dark:bg-gray-800" />
+                     <div className="col-span-2 flex items-center gap-4">
+                        <label htmlFor="image-upload" className="cursor-pointer bg-white dark:bg-gray-800 border border-border-divider dark:border-gray-600 px-4 py-2 rounded-lg text-text-secondary dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 font-semibold">
+                            Upload Image
+                        </label>
+                        <input type="file" id="image-upload" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                        {newItem.image && (
+                            <img src={newItem.image} alt="Preview" className="w-24 h-24 object-cover rounded-lg shadow-sm" />
+                        )}
+                     </div>
                     <button type="submit" className="bg-secondary text-white p-3 rounded-lg col-span-2 hover:bg-primary font-semibold text-lg transition-colors">Add Item to Menu</button>
                 </form>
             )}
@@ -54,16 +124,26 @@ const MenuManagement: React.FC<{ items: FoodItem[], updateFoodItem: (item: FoodI
                             <img src={item.image} alt={item.name} className="w-12 h-12 object-cover rounded-md" />
                             <span className="font-semibold truncate pr-2">{item.name}</span>
                         </div>
-                        <div className="flex items-center gap-4 flex-shrink-0">
+                        <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
                             <span className="font-bold text-lg">₹{item.price.toFixed(2)}</span>
                             <button onClick={() => updateFoodItem({...item, inStock: !item.inStock})} 
                                 className={`px-3 py-1 text-sm rounded-full font-semibold transition-colors ${item.inStock ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'}`}>
                                 {item.inStock ? 'In Stock' : 'Out of Stock'}
                             </button>
+                            <button onClick={() => setEditingItem(item)} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 text-text-secondary dark:text-gray-300 transition-colors">
+                                <EditIcon />
+                            </button>
                         </div>
                     </div>
                 ))}
             </div>
+            {editingItem && (
+                <EditItemModal 
+                    item={editingItem}
+                    onSave={updateFoodItem}
+                    onClose={() => setEditingItem(null)}
+                />
+            )}
         </div>
     );
 };
