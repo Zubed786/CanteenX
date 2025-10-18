@@ -7,13 +7,14 @@ interface StaffDashboardProps {
     setOrders: React.Dispatch<React.SetStateAction<Order[]>>;
     updateFoodItem: (item: FoodItem) => void;
     addFoodItem: (item: Omit<FoodItem, 'id'>) => void;
+    showToast: (message: string) => void;
 }
 
 const MenuManagement: React.FC<{ items: FoodItem[], updateFoodItem: (item: FoodItem) => void, addFoodItem: (item: Omit<FoodItem, 'id'>) => void }> = ({ items, updateFoodItem, addFoodItem }) => {
     
     const [showAddForm, setShowAddForm] = useState(false);
     const initialNewItemState = {
-        name: '', description: '', price: 0, image: 'https://picsum.photos/seed/new/400/300', type: FoodType.VEG,
+        name: '', description: '', price: 0, image: `https://picsum.photos/seed/${Date.now()}/400/300`, type: FoodType.VEG,
         category: [], nutrition: { calories: 0, protein: 0, carbs: 0 }, inStock: true
     };
     const [newItem, setNewItem] = useState<Omit<FoodItem, 'id' | 'rating'>>(initialNewItemState);
@@ -41,7 +42,7 @@ const MenuManagement: React.FC<{ items: FoodItem[], updateFoodItem: (item: FoodI
                         <option value={FoodType.VEG}>Veg</option>
                         <option value={FoodType.NON_VEG}>Non-Veg</option>
                     </select>
-                    {/* TODO: Add more fields for nutrition, category etc. */}
+                     <input type="text" placeholder="Image URL" value={newItem.image} onChange={e => setNewItem({...newItem, image: e.target.value})} className="p-3 border border-border-divider dark:border-gray-600 rounded-md col-span-2 bg-card-bg dark:bg-gray-800" />
                     <button type="submit" className="bg-secondary text-white p-3 rounded-lg col-span-2 hover:bg-primary font-semibold text-lg transition-colors">Add Item to Menu</button>
                 </form>
             )}
@@ -54,7 +55,7 @@ const MenuManagement: React.FC<{ items: FoodItem[], updateFoodItem: (item: FoodI
                             <span className="font-semibold truncate pr-2">{item.name}</span>
                         </div>
                         <div className="flex items-center gap-4 flex-shrink-0">
-                            <span className="font-bold text-lg">${item.price.toFixed(2)}</span>
+                            <span className="font-bold text-lg">₹{item.price.toFixed(2)}</span>
                             <button onClick={() => updateFoodItem({...item, inStock: !item.inStock})} 
                                 className={`px-3 py-1 text-sm rounded-full font-semibold transition-colors ${item.inStock ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'}`}>
                                 {item.inStock ? 'In Stock' : 'Out of Stock'}
@@ -67,10 +68,11 @@ const MenuManagement: React.FC<{ items: FoodItem[], updateFoodItem: (item: FoodI
     );
 };
 
-const OrderManagement: React.FC<{ orders: Order[], setOrders: React.Dispatch<React.SetStateAction<Order[]>> }> = ({ orders, setOrders }) => {
+const OrderManagement: React.FC<{ orders: Order[], setOrders: React.Dispatch<React.SetStateAction<Order[]>>, showToast: (message: string) => void }> = ({ orders, setOrders, showToast }) => {
     
     const updateStatus = (orderId: string, status: OrderStatus) => {
         setOrders(prev => prev.map(o => o.id === orderId ? {...o, status} : o));
+        showToast(`Order #${orderId.slice(-6)} status updated to "${status}".`);
     };
     
     const activeOrders = orders.filter(o => o.status !== OrderStatus.COMPLETED && o.status !== OrderStatus.CANCELLED);
@@ -150,7 +152,7 @@ const OrderManagement: React.FC<{ orders: Order[], setOrders: React.Dispatch<Rea
     );
 };
 
-const StaffDashboard: React.FC<StaffDashboardProps> = ({ menuItems, orders, setOrders, updateFoodItem, addFoodItem }) => {
+const StaffDashboard: React.FC<StaffDashboardProps> = ({ menuItems, orders, setOrders, updateFoodItem, addFoodItem, showToast }) => {
     const [activeTab, setActiveTab] = useState<'orders' | 'menu'>('orders');
 
     return (
@@ -162,7 +164,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({ menuItems, orders, setO
             </div>
             <div>
                 {activeTab === 'orders' ? 
-                    <OrderManagement orders={orders} setOrders={setOrders} /> : 
+                    <OrderManagement orders={orders} setOrders={setOrders} showToast={showToast} /> : 
                     <MenuManagement items={menuItems} updateFoodItem={updateFoodItem} addFoodItem={addFoodItem} />}
             </div>
         </div>

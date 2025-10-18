@@ -34,17 +34,19 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, toggleTheme
         <header className="bg-card-bg/80 dark:bg-gray-800/80 backdrop-blur-lg border-b border-border-divider/50 dark:border-gray-700/50 shadow-sm sticky top-0 z-50">
             <div className="container mx-auto px-4">
                 <div className="flex justify-between items-center py-4">
-                    <div className="text-2xl font-bold text-primary dark:text-cta-hover cursor-pointer" onClick={() => onNavigate(user.role === UserRole.STAFF ? 'dashboard' : 'home')}>
-                        CanteenX
+                    <div className="flex items-center space-x-8">
+                        <div className="text-2xl font-bold text-primary dark:text-cta-hover cursor-pointer flex-shrink-0" onClick={() => onNavigate(user.role === UserRole.STAFF ? 'dashboard' : 'home')}>
+                            CanteenX
+                        </div>
+                        <nav className="hidden md:flex items-center space-x-6">
+                            {navItems.map(item => (
+                                <button key={item.name} onClick={() => onNavigate(item.page)} className="flex items-center space-x-2 text-text-secondary dark:text-gray-300 hover:text-primary dark:hover:text-cta-hover transition duration-200 group">
+                                    <span className="group-hover:scale-110 transition-transform">{item.icon}</span>
+                                    <span>{item.name}</span>
+                                </button>
+                            ))}
+                        </nav>
                     </div>
-                    <nav className="hidden md:flex items-center space-x-6">
-                        {navItems.map(item => (
-                            <button key={item.name} onClick={() => onNavigate(item.page)} className="flex items-center space-x-2 text-text-secondary dark:text-gray-300 hover:text-primary dark:hover:text-cta-hover transition duration-200 group">
-                                <span className="group-hover:scale-110 transition-transform">{item.icon}</span>
-                                <span>{item.name}</span>
-                            </button>
-                        ))}
-                    </nav>
                     <div className="flex items-center space-x-2 sm:space-x-4">
                         <button onClick={toggleTheme} className="p-2 rounded-full text-text-secondary hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-primary dark:hover:text-cta-hover transition-colors">
                             {theme === 'light' ? <MoonIcon /> : <SunIcon />}

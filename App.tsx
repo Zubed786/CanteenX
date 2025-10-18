@@ -51,10 +51,10 @@ const App: React.FC = () => {
         }
     };
     
-    const showToast = (message: string) => {
+    const showToast = useCallback((message: string) => {
         setToastMessage(message);
         setTimeout(() => setToastMessage(null), 3000);
-    };
+    }, []);
 
     const handleLogout = () => {
         setCurrentUser(null);
@@ -63,29 +63,46 @@ const App: React.FC = () => {
     };
     
     const addToCart = useCallback((item: FoodItem) => {
+        const isExistingInCart = cart.find(cartItem => cartItem.id === item.id);
+
         setCart(prevCart => {
-            const existingItem = prevCart.find(cartItem => cartItem.id === item.id);
-            if (existingItem) {
+            if (isExistingInCart) {
                 return prevCart.map(cartItem =>
                     cartItem.id === item.id ? { ...cartItem, quantity: cartItem.quantity + 1 } : cartItem
                 );
             }
             return [...prevCart, { ...item, quantity: 1 }];
         });
-        showToast(`${item.name} added to cart!`);
-    }, []);
+
+        if (isExistingInCart) {
+            showToast(`${item.name} quantity updated in cart.`);
+        } else {
+            showToast(`${item.name} added to cart!`);
+        }
+    }, [cart, showToast]);
 
     const updateCartItemQuantity = (itemId: number, quantity: number) => {
         setCart(prevCart => {
             if (quantity <= 0) {
+                const itemToRemove = prevCart.find(item => item.id === itemId);
+                if (itemToRemove) {
+                    showToast(`${itemToRemove.name} removed from cart.`);
+                }
                 return prevCart.filter(item => item.id !== itemId);
+            }
+            const itemToUpdate = prevCart.find(item => item.id === itemId);
+            if (itemToUpdate && itemToUpdate.quantity !== quantity) {
+                showToast(`${itemToUpdate.name} quantity updated.`);
             }
             return prevCart.map(item => item.id === itemId ? { ...item, quantity } : item);
         });
     };
 
     const clearCart = () => {
-        setCart([]);
+        if (cart.length > 0) {
+            setCart([]);
+            showToast("Cart has been cleared.");
+        }
     };
 
     const placeOrder = (orderDetails: {name: string, email: string}) => {
@@ -99,7 +116,7 @@ const App: React.FC = () => {
             userDetails: orderDetails,
         };
         setOrders(prevOrders => [newOrder, ...prevOrders]);
-        clearCart();
+        setCart([]);
         setCurrentPage('orders');
         showToast('Order placed successfully!');
     };
@@ -132,11 +149,11 @@ const App: React.FC = () => {
             case 'smart-cart':
                 return <SmartCartPage smartCarts={smartCarts} setSmartCarts={setSmartCarts} currentCart={cart} setCart={setCart} showToast={showToast} allFoodItems={foodItems} />;
             case 'feedback':
-                return <FeedbackPage />;
+                return <FeedbackPage showToast={showToast} />;
             case 'about':
                 return <AboutPage />;
             case 'dashboard':
-                 return <StaffDashboard menuItems={foodItems} orders={orders} setOrders={setOrders} updateFoodItem={updateFoodItem} addFoodItem={addFoodItem} />;
+                 return <StaffDashboard menuItems={foodItems} orders={orders} setOrders={setOrders} updateFoodItem={updateFoodItem} addFoodItem={addFoodItem} showToast={showToast} />;
             default:
                 return <HomePage foodItems={foodItems} addToCart={addToCart} navigate={setCurrentPage} />;
         }

@@ -46,7 +46,7 @@ const CartPage: React.FC<CartPageProps> = ({ cartItems, updateCartItemQuantity, 
                         <input type="email" id="email" value={userDetails.email} onChange={e => setUserDetails({...userDetails, email: e.target.value})} className="w-full p-3 border border-border-divider dark:border-gray-600 rounded-md bg-neutral-bg dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:outline-none" required />
                     </div>
                     <button type="submit" className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-cta-hover transition-colors text-lg shadow-md hover:shadow-lg">
-                        Confirm & Pay ${totalAmount.toFixed(2)}
+                        Confirm & Pay ₹{totalAmount.toFixed(2)}
                     </button>
                      <button type="button" onClick={() => setCheckout(false)} className="w-full mt-3 text-center text-text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-cta-hover transition-colors">
                         Back to Cart
@@ -72,7 +72,7 @@ const CartPage: React.FC<CartPageProps> = ({ cartItems, updateCartItemQuantity, 
                                 <img src={item.image} alt={item.name} className="w-20 h-20 object-cover rounded-lg"/>
                                 <div>
                                     <h2 className="font-semibold text-lg">{item.name}</h2>
-                                    <p className="text-sm text-text-secondary">${item.price.toFixed(2)}</p>
+                                    <p className="text-sm text-text-secondary">₹{item.price.toFixed(2)}</p>
                                 </div>
                             </div>
                             <div className="flex items-center space-x-4">
@@ -81,14 +81,14 @@ const CartPage: React.FC<CartPageProps> = ({ cartItems, updateCartItemQuantity, 
                                     <span className="w-8 text-center font-semibold">{item.quantity}</span>
                                     <button onClick={() => updateCartItemQuantity(item.id, item.quantity + 1)} className="w-8 h-8 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 font-bold">+</button>
                                 </div>
-                                <span className="font-bold w-24 text-right text-lg">${(item.price * item.quantity).toFixed(2)}</span>
+                                <span className="font-bold w-24 text-right text-lg">₹{(item.price * item.quantity).toFixed(2)}</span>
                             </div>
                         </li>
                     ))}
                 </ul>
                 <div className="p-6 border-t border-border-divider dark:border-gray-700 flex justify-between items-center bg-neutral-bg/50 dark:bg-gray-900/20 rounded-b-lg">
                     <h2 className="text-xl font-bold">Total</h2>
-                    <span className="text-3xl font-extrabold text-primary">${totalAmount.toFixed(2)}</span>
+                    <span className="text-3xl font-extrabold text-primary">₹{totalAmount.toFixed(2)}</span>
                 </div>
             </div>
             <div className="mt-8 text-right">

@@ -22,9 +22,14 @@ const FoodItemCard: React.FC<FoodItemCardProps> = ({ item, onAddToCart, classNam
                 </div>
             </div>
             <div className="p-5 flex flex-col flex-grow">
-                <div className="mb-2">
-                    <h3 className="text-xl font-bold text-secondary dark:text-gray-100 truncate">{item.name}</h3>
+                <div className="flex justify-between items-start mb-2 gap-2">
+                    <h3 className="text-xl font-bold text-secondary dark:text-gray-100">{item.name}</h3>
+                    <div className="flex items-center space-x-1 flex-shrink-0 bg-highlight/20 px-2 py-1 rounded-full">
+                        <StarIcon className="w-4 h-4 text-highlight" />
+                        <span className="text-highlight font-bold text-sm">{item.rating.toFixed(1)}</span>
+                    </div>
                 </div>
+
                 <p className="text-text-secondary dark:text-gray-400 text-sm mb-4 flex-grow">{item.description}</p>
                 
                 <div className="flex justify-between items-center text-xs text-text-secondary dark:text-gray-400 mb-4">
@@ -33,12 +38,8 @@ const FoodItemCard: React.FC<FoodItemCardProps> = ({ item, onAddToCart, classNam
                     <span>Carbs: {item.nutrition.carbs}g</span>
                 </div>
 
-                <div className="flex justify-between items-center mt-auto">
-                    <div className="flex items-center space-x-1">
-                        <StarIcon />
-                        <span className="text-highlight font-bold text-base">{item.rating.toFixed(1)}</span>
-                    </div>
-                    <span className="text-2xl font-extrabold text-primary dark:text-cta-hover">${item.price.toFixed(2)}</span>
+                <div className="flex justify-end items-center mt-auto">
+                    <span className="text-2xl font-extrabold text-primary dark:text-cta-hover">₹{item.price.toFixed(2)}</span>
                 </div>
                  <button
                     onClick={() => onAddToCart(item)}

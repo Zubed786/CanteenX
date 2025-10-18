@@ -12,10 +12,10 @@ const allCategories = Object.values(FoodCategory);
 
 const MenuPage: React.FC<MenuPageProps> = ({ foodItems, addToCart }) => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [filters, setFilters] = useState<{ type: FoodType | 'all', category: FoodCategory | 'all', price: 'all' | 'asc' | 'desc' }>({
+    const [filters, setFilters] = useState<{ type: FoodType | 'all', category: FoodCategory | 'all', sort: 'default' | 'price_asc' | 'price_desc' | 'rating_desc' }>({
         type: 'all',
         category: 'all',
-        price: 'all',
+        sort: 'default',
     });
 
     const filteredAndSortedItems = useMemo(() => {
@@ -34,11 +34,14 @@ const MenuPage: React.FC<MenuPageProps> = ({ foodItems, addToCart }) => {
             items = items.filter(item => item.category.includes(category));
         }
 
-        if (filters.price === 'asc') {
+        if (filters.sort === 'price_asc') {
             items.sort((a, b) => a.price - b.price);
-        } else if (filters.price === 'desc') {
+        } else if (filters.sort === 'price_desc') {
             items.sort((a, b) => b.price - a.price);
+        } else if (filters.sort === 'rating_desc') {
+            items.sort((a, b) => b.rating - a.rating);
         }
+
 
         return items;
     }, [foodItems, searchTerm, filters]);
@@ -77,10 +80,11 @@ const MenuPage: React.FC<MenuPageProps> = ({ foodItems, addToCart }) => {
                         <option value="all">All Categories</option>
                         {allCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                     </select>
-                    <select value={filters.price} onChange={(e) => handleFilterChange('price', e.target.value as 'all' | 'asc' | 'desc')} className="w-full p-3 border border-border-divider dark:border-gray-600 rounded-md bg-neutral-bg dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:outline-none">
-                        <option value="all">Sort by Price</option>
-                        <option value="asc">Price: Low to High</option>
-                        <option value="desc">Price: High to Low</option>
+                    <select value={filters.sort} onChange={(e) => handleFilterChange('sort', e.target.value as 'default' | 'price_asc' | 'price_desc' | 'rating_desc')} className="w-full p-3 border border-border-divider dark:border-gray-600 rounded-md bg-neutral-bg dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:outline-none">
+                        <option value="default">Sort by</option>
+                        <option value="price_asc">Price: Low to High</option>
+                        <option value="price_desc">Price: High to Low</option>
+                        <option value="rating_desc">Rating: High to Low</option>
                     </select>
                 </div>
             </div>

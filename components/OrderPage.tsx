@@ -69,12 +69,12 @@ const OrderCard: React.FC<{ order: Order, isCurrent?: boolean }> = ({ order, isC
                 {order.items.map(item => (
                     <div key={item.id} className="flex justify-between py-1 text-sm">
                         <span className="text-text-secondary dark:text-gray-300">{item.name} x {item.quantity}</span>
-                        <span className="text-text-primary dark:text-gray-200">${(item.price * item.quantity).toFixed(2)}</span>
+                        <span className="text-text-primary dark:text-gray-200">₹{(item.price * item.quantity).toFixed(2)}</span>
                     </div>
                 ))}
                 <div className="border-t border-border-divider dark:border-gray-700 mt-2 pt-2 flex justify-between font-bold">
                     <span>Total</span>
-                    <span>${order.totalAmount.toFixed(2)}</span>
+                    <span>₹{order.totalAmount.toFixed(2)}</span>
                 </div>
             </div>
         </div>

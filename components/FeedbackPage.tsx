@@ -1,14 +1,18 @@
 
 import React, { useState } from 'react';
 
-const FeedbackPage: React.FC = () => {
+interface FeedbackPageProps {
+    showToast: (message: string) => void;
+}
+
+const FeedbackPage: React.FC<FeedbackPageProps> = ({ showToast }) => {
     const [feedback, setFeedback] = useState('');
     const [submitted, setSubmitted] = useState(false);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (feedback.trim()) {
-            console.log("Feedback submitted:", feedback);
+            showToast("Feedback submitted successfully!");
             setSubmitted(true);
             setFeedback('');
         }

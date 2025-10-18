@@ -70,7 +70,7 @@ const CreateSmartCartModal: React.FC<CreateSmartCartModalProps> = ({ allFoodItem
                                 <div key={foodItem.id} className="flex justify-between items-center p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700">
                                     <div>
                                         <p className="font-semibold">{foodItem.name}</p>
-                                        <p className="text-sm text-text-secondary">${foodItem.price.toFixed(2)}</p>
+                                        <p className="text-sm text-text-secondary">₹{foodItem.price.toFixed(2)}</p>
                                     </div>
                                     <button onClick={() => handleUpdateQuantity(foodItem, 1)} className="bg-primary text-white w-8 h-8 rounded-full hover:bg-cta-hover font-bold text-lg">+</button>
                                 </div>
@@ -86,7 +86,7 @@ const CreateSmartCartModal: React.FC<CreateSmartCartModalProps> = ({ allFoodItem
                                 <div key={item.id} className="flex justify-between items-center p-2">
                                     <div>
                                         <p className="font-semibold">{item.name}</p>
-                                        <p className="text-sm text-text-secondary">${item.price.toFixed(2)}</p>
+                                        <p className="text-sm text-text-secondary">₹{item.price.toFixed(2)}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <button onClick={() => handleUpdateQuantity(item, -1)} className="border w-6 h-6 rounded-md">-</button>
@@ -101,7 +101,7 @@ const CreateSmartCartModal: React.FC<CreateSmartCartModalProps> = ({ allFoodItem
                 </div>
 
                 <div className="p-4 border-t dark:border-gray-700 flex justify-between items-center">
-                    <div className="text-xl font-bold">Total: <span className="text-primary">${totalAmount.toFixed(2)}</span></div>
+                    <div className="text-xl font-bold">Total: <span className="text-primary">₹{totalAmount.toFixed(2)}</span></div>
                     <div className="flex gap-4">
                         <button onClick={onClose} className="px-6 py-2 rounded-md border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600">Cancel</button>
                         <button onClick={handleSaveClick} className="bg-secondary text-white px-8 py-2 rounded-md hover:bg-primary font-semibold">Save Cart</button>
@@ -199,7 +199,7 @@ const SmartCartPage: React.FC<SmartCartPageProps> = ({ smartCarts, setSmartCarts
                             <div key={cart.id} className="bg-card-bg dark:bg-gray-800 p-4 rounded-lg shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                 <div>
                                     <h3 className="font-bold text-lg">{cart.name}</h3>
-                                    <p className="text-sm text-text-secondary">{cart.items.length} items &bull; Total: ${cart.items.reduce((t, i) => t + i.price * i.quantity, 0).toFixed(2)}</p>
+                                    <p className="text-sm text-text-secondary">{cart.items.length} items &bull; Total: ₹{cart.items.reduce((t, i) => t + i.price * i.quantity, 0).toFixed(2)}</p>
                                 </div>
                                 <div className="space-x-2 flex-shrink-0">
                                     <button onClick={() => handleLoadCart(cart)} className="bg-secondary text-white px-4 py-2 rounded-md hover:bg-primary text-sm font-semibold">Order Again</button>

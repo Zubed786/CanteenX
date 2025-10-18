@@ -12,6 +12,20 @@ interface HomePageProps {
 const HomePage: React.FC<HomePageProps> = ({ foodItems, addToCart, navigate }) => {
     const specialDishes = foodItems.filter(item => item.category.includes(FoodCategory.SPECIAL));
     const popularDishes = foodItems.filter(item => item.category.includes(FoodCategory.POPULAR));
+    const [scrollOffset, setScrollOffset] = useState(0);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            setScrollOffset(window.pageYOffset);
+        };
+
+        window.addEventListener('scroll', handleScroll);
+
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+        };
+    }, []);
+
 
     const Slider: React.FC<{dishes: FoodItem[], title: string}> = ({dishes, title}) => {
         const [currentIndex, setCurrentIndex] = useState(0);
@@ -61,8 +75,11 @@ const HomePage: React.FC<HomePageProps> = ({ foodItems, addToCart, navigate }) =
     return (
         <div className="animate-fade-in">
             <div
-                className="bg-cover bg-center h-[500px] rounded-2xl mb-12 flex items-center justify-center text-white relative overflow-hidden"
-                style={{ backgroundImage: "url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1470&auto=format&fit=crop')" }}
+                className="bg-cover bg-center bg-fixed h-[500px] rounded-2xl mb-12 flex items-center justify-center text-white relative overflow-hidden"
+                style={{ 
+                    backgroundImage: "url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1470&auto=format&fit=crop')",
+                    backgroundPositionY: `${scrollOffset * 0.4}px` 
+                }}
             >
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-black/20"></div>
                 <div className="relative bg-black bg-opacity-40 p-10 rounded-lg text-center backdrop-blur-sm">
