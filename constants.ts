@@ -2,7 +2,6 @@ import { FoodItem, FoodType, FoodCategory, User, UserRole } from './types';
 
 export const MOCK_USERS: User[] = [
   { id: '1', email: 'student@canteenx.com', role: UserRole.STUDENT, name: 'Alex Doe' },
-  { id: '2', email: 'staff@canteenx.com', role: UserRole.STAFF, name: 'Jane Smith' },
 ];
 
 export const MOCK_FOOD_ITEMS: FoodItem[] = [

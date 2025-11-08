@@ -11,16 +11,16 @@ import OrderPage from './components/OrderPage';
 import SmartCartPage from './components/SmartCartPage';
 import FeedbackPage from './components/FeedbackPage';
 import AboutPage from './components/AboutPage';
-import StaffDashboard from './components/StaffDashboard';
 import Toast from './components/Toast';
 
-export type Page = 'home' | 'menu' | 'orders' | 'smart-cart' | 'feedback' | 'about' | 'cart' | 'dashboard';
+export type Page = 'home' | 'menu' | 'orders' | 'smart-cart' | 'feedback' | 'about' | 'cart';
 
 const App: React.FC = () => {
     const [theme, setTheme] = useState<'light' | 'dark'>('light');
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [currentPage, setCurrentPage] = useState<Page>('home');
     
+    const [users, setUsers] = useState<User[]>(MOCK_USERS);
     const [foodItems, setFoodItems] = useState<FoodItem[]>(MOCK_FOOD_ITEMS);
     const [cart, setCart] = useState<CartItem[]>([]);
     const [orders, setOrders] = useState<Order[]>([]);
@@ -33,55 +33,66 @@ const App: React.FC = () => {
         root.classList.add(theme);
     }, [theme]);
 
-    const toggleTheme = () => {
-        setTheme(theme === 'light' ? 'dark' : 'light');
-    };
-
-    const handleLogin = (email: string, role: UserRole) => {
-        const user = MOCK_USERS.find(u => u.email === email && u.role === role);
-        if (user) {
-            setCurrentUser(user);
-            if(user.role === UserRole.STAFF) {
-                setCurrentPage('dashboard');
-            } else {
-                setCurrentPage('home');
-            }
-        } else {
-            alert('Invalid credentials!');
-        }
-    };
-    
     const showToast = useCallback((message: string) => {
         setToastMessage(message);
         setTimeout(() => setToastMessage(null), 3000);
     }, []);
 
-    const handleLogout = () => {
+    const toggleTheme = () => {
+        setTheme(theme === 'light' ? 'dark' : 'light');
+    };
+
+    const handleLogin = useCallback((email: string) => {
+        const user = users.find(u => u.email === email && u.role === UserRole.STUDENT);
+        if (user) {
+            setCurrentUser(user);
+            setCurrentPage('home');
+            showToast(`Welcome back, ${user.name}!`);
+        } else {
+            showToast('Invalid credentials!');
+        }
+    }, [users, showToast]);
+
+    const handleSignUp = useCallback((name: string, email: string) => {
+        if (users.find(u => u.email === email)) {
+            showToast('An account with this email already exists.');
+            return;
+        }
+        
+        const newUser: User = {
+            id: `user-${Date.now()}`,
+            name,
+            email,
+            role: UserRole.STUDENT,
+        };
+
+        setUsers(prev => [...prev, newUser]);
+        setCurrentUser(newUser);
+        setCurrentPage('home');
+        showToast(`Welcome, ${name}! Your account has been created.`);
+    }, [users, showToast]);
+    
+    const handleLogout = useCallback(() => {
         setCurrentUser(null);
         setCurrentPage('home');
         setCart([]);
-    };
+    }, []);
     
     const addToCart = useCallback((item: FoodItem) => {
-        const isExistingInCart = cart.find(cartItem => cartItem.id === item.id);
-
         setCart(prevCart => {
+            const isExistingInCart = prevCart.find(cartItem => cartItem.id === item.id);
             if (isExistingInCart) {
+                showToast(`${item.name} quantity updated in cart.`);
                 return prevCart.map(cartItem =>
                     cartItem.id === item.id ? { ...cartItem, quantity: cartItem.quantity + 1 } : cartItem
                 );
             }
+            showToast(`${item.name} added to cart!`);
             return [...prevCart, { ...item, quantity: 1 }];
         });
+    }, [showToast]);
 
-        if (isExistingInCart) {
-            showToast(`${item.name} quantity updated in cart.`);
-        } else {
-            showToast(`${item.name} added to cart!`);
-        }
-    }, [cart, showToast]);
-
-    const updateCartItemQuantity = (itemId: number, quantity: number) => {
+    const updateCartItemQuantity = useCallback((itemId: number, quantity: number) => {
         setCart(prevCart => {
             if (quantity <= 0) {
                 const itemToRemove = prevCart.find(item => item.id === itemId);
@@ -96,21 +107,20 @@ const App: React.FC = () => {
             }
             return prevCart.map(item => item.id === itemId ? { ...item, quantity } : item);
         });
-    };
+    }, [showToast]);
 
-    const clearCart = () => {
+    const clearCart = useCallback(() => {
         if (cart.length > 0) {
             setCart([]);
             showToast("Cart has been cleared.");
         }
-    };
+    }, [cart.length, showToast]);
 
-    const placeOrder = (orderDetails: {name: string, email: string}) => {
+    const placeOrder = useCallback((orderDetails: {name: string, email: string}) => {
         const newOrder: Order = {
             id: `ORD-${Date.now()}`,
             items: cart,
             totalAmount: cart.reduce((total, item) => total + item.price * item.quantity, 0),
-            // FIX: Use OrderStatus enum instead of string literal
             status: OrderStatus.PLACED,
             date: new Date().toISOString(),
             userDetails: orderDetails,
@@ -119,24 +129,9 @@ const App: React.FC = () => {
         setCart([]);
         setCurrentPage('orders');
         showToast('Order placed successfully!');
-    };
-    
-    const updateFoodItem = (updatedItem: FoodItem) => {
-      setFoodItems(prev => prev.map(item => item.id === updatedItem.id ? updatedItem : item));
-      showToast(`${updatedItem.name} has been updated.`);
-    };
-
-    const addFoodItem = (newItem: Omit<FoodItem, 'id'>) => {
-      const newFoodItem = { ...newItem, id: Date.now() };
-      setFoodItems(prev => [newFoodItem, ...prev]);
-      showToast(`${newItem.name} has been added to the menu.`);
-    };
+    }, [cart, showToast]);
 
     const renderPage = () => {
-        if (currentUser?.role === UserRole.STAFF && currentPage !== 'dashboard') {
-            setCurrentPage('dashboard');
-        }
-
         switch (currentPage) {
             case 'home':
                 return <HomePage foodItems={foodItems} addToCart={addToCart} navigate={setCurrentPage} />;
@@ -152,15 +147,13 @@ const App: React.FC = () => {
                 return <FeedbackPage showToast={showToast} />;
             case 'about':
                 return <AboutPage />;
-            case 'dashboard':
-                 return <StaffDashboard menuItems={foodItems} orders={orders} setOrders={setOrders} updateFoodItem={updateFoodItem} addFoodItem={addFoodItem} showToast={showToast} />;
             default:
                 return <HomePage foodItems={foodItems} addToCart={addToCart} navigate={setCurrentPage} />;
         }
     };
 
     if (!currentUser) {
-        return <LoginModal onLogin={handleLogin} />;
+        return <LoginModal onLogin={handleLogin} onSignUp={handleSignUp} />;
     }
 
     return (

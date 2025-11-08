@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { User, UserRole } from '../types';
+import { User } from '../types';
 import { Page } from '../App';
-import { HomeIcon, MenuIcon, OrderIcon, SmartCartIcon, FeedbackIcon, AboutIcon, CartIcon, SunIcon, MoonIcon, UserIcon, StaffIcon, HamburgerIcon, CloseIcon } from './icons/Icons';
+import { HomeIcon, MenuIcon, OrderIcon, SmartCartIcon, FeedbackIcon, AboutIcon, CartIcon, SunIcon, MoonIcon, UserIcon, HamburgerIcon, CloseIcon } from './icons/Icons';
 
 interface HeaderProps {
     user: User;
@@ -32,7 +32,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, toggleTheme
         setIsMobileMenuOpen(false);
     };
     
-    const studentNavItems = [
+    const navItems = [
         { name: 'Home', page: 'home' as Page, icon: <HomeIcon /> },
         { name: 'Menu', page: 'menu' as Page, icon: <MenuIcon /> },
         { name: 'My Orders', page: 'orders' as Page, icon: <OrderIcon /> },
@@ -40,12 +40,6 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, toggleTheme
         { name: 'Feedback', page: 'feedback' as Page, icon: <FeedbackIcon /> },
         { name: 'About', page: 'about' as Page, icon: <AboutIcon /> },
     ];
-    
-    const staffNavItems = [
-        { name: 'Dashboard', page: 'dashboard' as Page, icon: <StaffIcon /> },
-    ];
-
-    const navItems = user.role === UserRole.STUDENT ? studentNavItems : staffNavItems;
 
     return (
         <>
@@ -53,7 +47,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, toggleTheme
                 <div className="container mx-auto px-4">
                     <div className="flex items-center py-4">
                         <div className="flex items-center space-x-8">
-                            <div className="text-2xl font-bold text-primary dark:text-cta-hover cursor-pointer flex-shrink-0" onClick={() => onNavigate(user.role === UserRole.STAFF ? 'dashboard' : 'home')}>
+                            <div className="text-2xl font-bold text-primary dark:text-cta-hover cursor-pointer flex-shrink-0" onClick={() => onNavigate('home')}>
                                 CanteenX
                             </div>
                             <nav className="hidden md:flex items-center space-x-6">
@@ -69,16 +63,14 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, toggleTheme
                             <button onClick={toggleTheme} className="p-2 rounded-full text-text-secondary hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-primary dark:hover:text-cta-hover transition-colors">
                                 {theme === 'light' ? <MoonIcon /> : <SunIcon />}
                             </button>
-                            {user.role === UserRole.STUDENT && (
-                                <button onClick={() => onNavigate('cart')} className="relative p-2 rounded-full text-text-secondary hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-primary dark:hover:text-cta-hover transition-colors">
-                                    <CartIcon />
-                                    {cartItemCount > 0 && (
-                                        <span className="absolute -top-1 -right-1 block h-5 w-5 rounded-full bg-accent text-white text-xs flex items-center justify-center animate-pulse">
-                                            {cartItemCount}
-                                        </span>
-                                    )}
-                                </button>
-                            )}
+                            <button onClick={() => onNavigate('cart')} className="relative p-2 rounded-full text-text-secondary hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-primary dark:hover:text-cta-hover transition-colors">
+                                <CartIcon />
+                                {cartItemCount > 0 && (
+                                    <span className="absolute -top-1 -right-1 block h-5 w-5 rounded-full bg-accent text-white text-xs flex items-center justify-center animate-pulse">
+                                        {cartItemCount}
+                                    </span>
+                                )}
+                            </button>
                             <div className="relative">
                                 <button onClick={() => setProfileOpen(!profileOpen)} className="p-2 rounded-full text-text-secondary hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-primary dark:hover:text-cta-hover transition-colors">
                                     <UserIcon />
