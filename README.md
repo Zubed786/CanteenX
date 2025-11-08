@@ -1,20 +1,71 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+![CanteenX Banner](CanteenX.png)
 
-# Run and deploy your AI Studio app
+# 🍴 CanteenX  
+> A modern full-stack **Canteen Management System** built with React, Express, and MongoDB.
 
-This contains everything you need to run your app locally.
+![GitHub last commit](https://img.shields.io/github/last-commit/Zubed786/CanteenX)
+![GitHub repo size](https://img.shields.io/github/repo-size/Zubed786/CanteenX)
+![GitHub issues](https://img.shields.io/github/issues/Zubed786/CanteenX)
+![GitHub license](https://img.shields.io/github/license/Zubed786/CanteenX)
 
-View your app in AI Studio: https://ai.studio/apps/drive/1FQFEwbh0nTeT383z5JCYZ7tidmpTSh_v
+---
 
-## Run Locally
+## 🚀 Tech Stack
 
-**Prerequisites:**  Node.js
+| Layer | Technology |
+|:------|:------------|
+| 🎨 **Frontend** | ![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB) ![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white) |
+| ⚙️ **Backend** | ![Node.js](https://img.shields.io/badge/Node.js-43853D?logo=node.js&logoColor=white) ![Express](https://img.shields.io/badge/Express.js-000000?logo=express&logoColor=white) |
+| 💾 **Database** | ![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?logo=mongodb&logoColor=white) |
+| 🧩 **Other Tools** | ![Nodemon](https://img.shields.io/badge/Nodemon-76D04B?logo=nodemon&logoColor=white) ![Git](https://img.shields.io/badge/Git-F05033?logo=git&logoColor=white) |
+
+---
+
+## 📂 Project Structure
+
+CANTEENX/
+┣ client/ → React + Vite frontend
+┣ server/ → Express + MongoDB backend
+┣ .gitignore
+┣ package-lock.json
+┗ README.md
 
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+---
+
+## 🧠 Features
+
+✅ Full CRUD operations with MongoDB  
+✅ Beautiful React + TypeScript frontend  
+✅ RESTful Express backend with CORS  
+✅ Environment configuration with `.env`  
+✅ Live integration between client and server  
+✅ Clean project architecture for scalability  
+
+---
+
+## ⚙️ Installation & Setup
+
+### 1️⃣ Clone the repository
+```bash
+git clone https://github.com/Zubed786/CanteenX.git
+cd CanteenX
+
+
+👨‍💻 Author
+
+MD Zubed
+📧 mdzubed777@gmail.com
+
+🔗 https://github.com/Zubed786
+
+🏁 Quick Start Summary
+# Backend
+cd server
+npm install
+npm run dev
+
+# Frontend
+cd ../client
+npm install
+npm run dev
