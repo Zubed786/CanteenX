@@ -24,13 +24,11 @@
 ## 📂 Project Structure
 
 CANTEENX/
-┣ client/ → React + Vite frontend
-┣ server/ → Express + MongoDB backend
-┣ .gitignore
-┣ package-lock.json
-┗ README.md
-
-
+├── client/ # React + Vite frontend
+├── server/ # Express + MongoDB backend
+├── .gitignore
+├── package-lock.json
+└── README.md
 ---
 
 ## 🧠 Features
