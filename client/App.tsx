@@ -19,7 +19,7 @@ const App: React.FC = () => {
     const [theme, setTheme] = useState<'light' | 'dark'>('light');
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [currentPage, setCurrentPage] = useState<Page>('home');
-    
+
     const [users, setUsers] = useState<User[]>(MOCK_USERS);
     const [foodItems, setFoodItems] = useState<FoodItem[]>(MOCK_FOOD_ITEMS);
     const [cart, setCart] = useState<CartItem[]>([]);
@@ -27,11 +27,28 @@ const App: React.FC = () => {
     const [smartCarts, setSmartCarts] = useState<SmartCart[]>([]);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+    // useEffect(() => {
+    //     const root = window.document.documentElement;
+    //     root.classList.remove(theme === 'light' ? 'dark' : 'light');
+    //     root.classList.add(theme);
+    // }, [theme]);
     useEffect(() => {
-        const root = window.document.documentElement;
-        root.classList.remove(theme === 'light' ? 'dark' : 'light');
-        root.classList.add(theme);
-    }, [theme]);
+        const fetchFoodItems = async () => {
+            try {
+                const res = await fetch("http://localhost:5000/api/items");
+                if (!res.ok) throw new Error("Network error");
+                const data = await res.json();
+                setFoodItems(data); // Replace mock data with MongoDB items
+                console.log("✅ Fetched from backend:", data);
+            } catch (err) {
+                console.error("❌ Backend fetch failed, using mock data:", err);
+                setFoodItems(MOCK_FOOD_ITEMS);
+            }
+        };
+
+        fetchFoodItems();
+    }, []);
+
 
     const showToast = useCallback((message: string) => {
         setToastMessage(message);
@@ -58,7 +75,7 @@ const App: React.FC = () => {
             showToast('An account with this email already exists.');
             return;
         }
-        
+
         const newUser: User = {
             id: `user-${Date.now()}`,
             name,
@@ -71,13 +88,13 @@ const App: React.FC = () => {
         setCurrentPage('home');
         showToast(`Welcome, ${name}! Your account has been created.`);
     }, [users, showToast]);
-    
+
     const handleLogout = useCallback(() => {
         setCurrentUser(null);
         setCurrentPage('home');
         setCart([]);
     }, []);
-    
+
     const addToCart = useCallback((item: FoodItem) => {
         setCart(prevCart => {
             const isExistingInCart = prevCart.find(cartItem => cartItem.id === item.id);
@@ -116,7 +133,7 @@ const App: React.FC = () => {
         }
     }, [cart.length, showToast]);
 
-    const placeOrder = useCallback((orderDetails: {name: string, email: string}) => {
+    const placeOrder = useCallback((orderDetails: { name: string, email: string }) => {
         const newOrder: Order = {
             id: `ORD-${Date.now()}`,
             items: cart,
