@@ -50,14 +50,81 @@ CANTEENX/
 ```bash
 git clone https://github.com/Zubed786/CanteenX.git
 cd CanteenX
+2️⃣ Backend Setup (Express + MongoDB)
+cd server
+npm install
 
 
+Create a .env file inside /server:
+
+MONGO_URI=mongodb://localhost:27017/canteenx
+PORT=5000
+
+
+Run the backend:
+
+npm run dev
+
+
+Expected output:
+
+✅ Connected to MongoDB
+🚀 Server running on port 5000
+
+3️⃣ Frontend Setup (React + Vite)
+
+In another terminal:
+
+cd ../client
+npm install
+npm run dev
+
+
+Expected output:
+
+VITE v6.x ready in 300ms
+Local: http://localhost:5173/
+
+
+Open your browser → http://localhost:5173
+
+🧾 API Endpoints
+Method	Endpoint	Description
+GET	/api/items	Fetch all menu items
+POST	/api/items	Add a new canteen item
+
+Example POST body:
+
+{
+  "name": "Cold Coffee",
+  "price": 45,
+  "available": true
+}
+
+🧰 NPM Scripts
+Frontend (/client)
+Command	Description
+npm run dev	Start React dev server
+npm run build	Create production build
+Backend (/server)
+Command	Description
+npm run dev	Start Express with nodemon
+npm start	Run backend in production mode
+🌍 Environment Variables
+Variable	Description
+MONGO_URI	MongoDB connection string
+PORT	Server port number (default: 5000)
 👨‍💻 Author
 
 MD Zubed
 📧 mdzubed777@gmail.com
 
 🔗 https://github.com/Zubed786
+
+⚠️ License
+
+This project is open-source and available under the MIT License
+.
 
 🏁 Quick Start Summary
 # Backend
@@ -69,3 +136,12 @@ npm run dev
 cd ../client
 npm install
 npm run dev
+
+
+Visit:
+
+Frontend → http://localhost:5173
+
+Backend → http://localhost:5000/api/items
+
+✅ You’re live!
