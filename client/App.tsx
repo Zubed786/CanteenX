@@ -33,21 +33,35 @@ const App: React.FC = () => {
     //     root.classList.add(theme);
     // }, [theme]);
     useEffect(() => {
-        const fetchFoodItems = async () => {
-            try {
-                const res = await fetch("http://localhost:5000/api/items");
-                if (!res.ok) throw new Error("Network error");
-                const data = await res.json();
-                setFoodItems(data); // Replace mock data with MongoDB items
-                console.log("✅ Fetched from backend:", data);
-            } catch (err) {
-                console.error("❌ Backend fetch failed, using mock data:", err);
-                setFoodItems(MOCK_FOOD_ITEMS);
+        setFoodItems(MOCK_FOOD_ITEMS);
+    }, []);
+    useEffect(() => {
+        const fetchOrders = async () => {
+            if (currentUser?.email) {
+                try {
+                    const res = await fetch(`http://localhost:5000/api/orders/${currentUser.email}`);
+                    if (!res.ok) throw new Error("Failed to fetch orders");
+                    const data = await res.json();
+
+                    // Convert backend data into your frontend shape
+                    const formattedOrders = data.map((order: any) => ({
+                        id: order._id,
+                        items: order.items,
+                        totalAmount: order.totalAmount,
+                        status: OrderStatus.PLACED, // since backend uses "PLACED" string
+                        date: order.date || order.createdAt,
+                        userDetails: order.userDetails,
+                    }));
+
+                    setOrders(formattedOrders);
+                } catch (error) {
+                    console.error("Error fetching orders:", error);
+                }
             }
         };
 
-        fetchFoodItems();
-    }, []);
+        fetchOrders();
+    }, [currentUser]);
 
 
     const showToast = useCallback((message: string) => {
@@ -59,35 +73,57 @@ const App: React.FC = () => {
         setTheme(theme === 'light' ? 'dark' : 'light');
     };
 
-    const handleLogin = useCallback((email: string) => {
-        const user = users.find(u => u.email === email && u.role === UserRole.STUDENT);
-        if (user) {
+    const handleLogin = useCallback(async (email: string) => {
+        try {
+            const res = await fetch("http://localhost:5000/api/users/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email }),
+            });
+
+            if (!res.ok) throw new Error("Invalid credentials");
+            const data = await res.json();
+
+            const user = {
+                id: data.user._id,
+                name: data.user.name,
+                email: data.user.email,
+                role: UserRole.STUDENT,
+            };
+
             setCurrentUser(user);
-            setCurrentPage('home');
+            setCurrentPage("home");
             showToast(`Welcome back, ${user.name}!`);
-        } else {
-            showToast('Invalid credentials!');
+        } catch (error) {
+            showToast("Invalid credentials!");
         }
-    }, [users, showToast]);
+    }, [showToast]);
 
-    const handleSignUp = useCallback((name: string, email: string) => {
-        if (users.find(u => u.email === email)) {
-            showToast('An account with this email already exists.');
-            return;
+    const handleSignUp = useCallback(async (name: string, email: string) => {
+        try {
+            const res = await fetch("http://localhost:5000/api/users/signup", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, email, password: "default" }),
+            });
+
+            if (!res.ok) throw new Error("Signup failed");
+            const data = await res.json();
+
+            const user = {
+                id: data.user._id,
+                name: data.user.name,
+                email: data.user.email,
+                role: UserRole.STUDENT,
+            };
+
+            setCurrentUser(user);
+            setCurrentPage("home");
+            showToast(`Welcome, ${user.name}!`);
+        } catch (error) {
+            showToast("Signup failed!");
         }
-
-        const newUser: User = {
-            id: `user-${Date.now()}`,
-            name,
-            email,
-            role: UserRole.STUDENT,
-        };
-
-        setUsers(prev => [...prev, newUser]);
-        setCurrentUser(newUser);
-        setCurrentPage('home');
-        showToast(`Welcome, ${name}! Your account has been created.`);
-    }, [users, showToast]);
+    }, [showToast]);
 
     const handleLogout = useCallback(() => {
         setCurrentUser(null);
@@ -132,20 +168,45 @@ const App: React.FC = () => {
             showToast("Cart has been cleared.");
         }
     }, [cart.length, showToast]);
-
-    const placeOrder = useCallback((orderDetails: { name: string, email: string }) => {
-        const newOrder: Order = {
-            id: `ORD-${Date.now()}`,
-            items: cart,
+    const placeOrder = useCallback(async (orderDetails: { name: string; email: string }) => {
+        const orderData = {
+            userEmail: orderDetails.email,
+            items: cart.map(item => ({
+                name: item.name,
+                price: item.price,
+                quantity: item.quantity,
+                image: item.image,
+            })),
             totalAmount: cart.reduce((total, item) => total + item.price * item.quantity, 0),
-            status: OrderStatus.PLACED,
-            date: new Date().toISOString(),
-            userDetails: orderDetails,
         };
-        setOrders(prevOrders => [newOrder, ...prevOrders]);
-        setCart([]);
-        setCurrentPage('orders');
-        showToast('Order placed successfully!');
+
+        try {
+            const res = await fetch("http://localhost:5000/api/orders", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(orderData),
+            });
+
+            if (!res.ok) throw new Error("Failed to place order");
+            const data = await res.json();
+
+            // ✅ Build an order object that matches your frontend type
+            const newOrder = {
+                id: data.newOrder._id,
+                items: data.newOrder.items,
+                totalAmount: data.newOrder.totalAmount,
+                status: OrderStatus.PLACED,
+                date: data.newOrder.date,
+                userDetails: data.newOrder.userDetails,
+            };
+
+            setOrders(prev => [newOrder, ...prev]); // add the real MongoDB order
+            setCart([]);
+            setCurrentPage("orders");
+            showToast("Order placed successfully!");
+        } catch (error) {
+            showToast("Failed to place order.");
+        }
     }, [cart, showToast]);
 
     const renderPage = () => {
