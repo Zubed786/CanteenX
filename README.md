@@ -1,4 +1,4 @@
-![CanteenX Banner](CanteenX.png)
+![CanteenX Banner](Canteenx.png)
 
 # 🍴 CanteenX  
 > A modern full-stack **Canteen Management System** built with React, Express, and MongoDB.
