@@ -4,50 +4,75 @@ import path from "path";
 
 const filesDir = path.join(__dirname, "files");
 const ordersFile = path.join(filesDir, "orders.csv");
+const ORDERS_HEADER = "OrderID,Email,Name,Details,Date\n";
 
-function ensureCsv(filePath: string, header: string) {
-  try {
-    if (!fs.existsSync(filesDir)) {
-      fs.mkdirSync(filesDir, { recursive: true });
+class CsvAppender {
+  private filePath: string;
+  private header: string;
+  private queue: Promise<void> = Promise.resolve();
+
+  constructor(filePath: string, header: string) {
+    this.filePath = filePath;
+    this.header = header;
+  }
+
+  private async ensureFile() {
+    await fs.promises.mkdir(path.dirname(this.filePath), { recursive: true });
+    try {
+      await fs.promises.access(this.filePath, fs.constants.F_OK);
+    } catch {
+      await fs.promises.writeFile(this.filePath, this.header, "utf8");
     }
-    if (!fs.existsSync(filePath)) {
-      fs.writeFileSync(filePath, header, "utf8");
-    }
-  } catch (err) {
-    console.error("❌ Error ensuring CSV file:", err);
+  }
+
+  private escape(value: string): string {
+    return `"${String(value).replace(/"/g, '""')}"`;
+  }
+
+  append(fields: string[]): Promise<void> {
+    this.queue = this.queue.then(async () => {
+      await this.ensureFile();
+      const line = fields.map((f) => this.escape(f)).join(",") + "\n";
+      await fs.promises.appendFile(this.filePath, line, "utf8");
+    });
+    return this.queue;
   }
 }
 
-function escapeCsv(value: string): string {
-  // Per CSV rules, wrap in quotes and double any internal quotes
-  return `"${String(value).replace(/"/g, '""')}"`;
+const orderAppender = new CsvAppender(ordersFile, ORDERS_HEADER);
+
+function validateEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 /**
  * Log an order to server/files/orders.csv
- * Header: OrderID,Email,Name,Details,Date
+ * - orderId: string (should be unique per order)
+ * - email: user's email (the person who placed the order)
+ * - name: person's display/name who placed the order
+ * - details: text (JSON-serialized items or a free-form description — it will be escaped)
  *
- * - orderId: unique id for the order (string)
- * - email: email of the user who placed the order
- * - name: name of the user who placed the order
- * - details: a text/JSON string describing items/amount/etc.
+ * Returns a Promise that resolves when the write completes or rejects on error.
  */
-export function logOrder(orderId: string, email: string, name: string, details: string): void {
-  ensureCsv(ordersFile, "OrderID,Email,Name,Details,Date\n");
+export async function logOrder(
+  orderId: string,
+  email: string,
+  name: string,
+  details: string
+): Promise<void> {
+  if (!orderId || typeof orderId !== "string") {
+    throw new TypeError("orderId must be a non-empty string");
+  }
+  if (!email || typeof email !== "string" || !validateEmail(email)) {
+    throw new Error("invalid email");
+  }
+  if (typeof name !== "string") {
+    throw new TypeError("name must be a string");
+  }
+  if (typeof details !== "string") {
+    throw new TypeError("details must be a string (serialize objects to JSON first)");
+  }
 
   const now = new Date().toISOString();
-  const record = [
-    escapeCsv(orderId),
-    escapeCsv(email),
-    escapeCsv(name),
-    escapeCsv(details),
-    escapeCsv(now),
-  ].join(",") + "\n";
-
-  try {
-    fs.appendFileSync(ordersFile, record, "utf8");
-    console.log(`✅ Order logged: ${orderId} by ${email}`);
-  } catch (err) {
-    console.error("❌ Error logging order:", err);
-  }
+  await orderAppender.append([orderId, email, name, details, now]);
 }
