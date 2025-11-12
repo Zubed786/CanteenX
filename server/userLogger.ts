@@ -1,25 +1,43 @@
-// server/utils/userLogger.ts
+// server/userLogger.ts
 import fs from "fs";
 import path from "path";
 
-const userFilePath = path.join(__dirname, "../data/users.csv");
+const filesDir = path.join(__dirname, "files");
+const usersFile = path.join(filesDir, "users.csv");
 
-// Ensure CSV header exists
-function ensureUserCSV() {
-  if (!fs.existsSync(userFilePath)) {
-    fs.writeFileSync(userFilePath, "Email,Date\n", "utf-8");
+function ensureCsv(filePath: string, header: string) {
+  try {
+    if (!fs.existsSync(filesDir)) {
+      fs.mkdirSync(filesDir, { recursive: true });
+    }
+    if (!fs.existsSync(filePath)) {
+      fs.writeFileSync(filePath, header, "utf8");
+    }
+  } catch (err) {
+    console.error("❌ Error ensuring CSV file:", err);
   }
 }
 
-// Append new user signup to CSV
+function escapeCsv(value: string): string {
+  // Per CSV rules, wrap in quotes and double any internal quotes
+  return `"${String(value).replace(/"/g, '""')}"`;
+}
+
+/**
+ * Log a user signup (email and timestamp) to server/files/users.csv
+ * Header: Email,Date
+ */
 export function logUserSignup(email: string): void {
-  ensureUserCSV();
+  ensureCsv(usersFile, "Email,Date\n");
 
-  const now = new Date().toLocaleString();
-  const record = `${email},${now}\n`;
+  const now = new Date().toISOString();
+  const record = `${escapeCsv(email)},${escapeCsv(now)}\n`;
 
-  fs.appendFile(userFilePath, record, (err) => {
-    if (err) console.error("❌ Error logging user:", err);
-    else console.log("✅ User signup logged:", email);
-  });
+  try {
+    // Using synchronous append keeps it simple and predictable for a small logger
+    fs.appendFileSync(usersFile, record, "utf8");
+    console.log("✅ User signup logged:", email);
+  } catch (err) {
+    console.error("❌ Error logging user signup:", err);
+  }
 }
