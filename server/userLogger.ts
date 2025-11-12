@@ -4,40 +4,65 @@ import path from "path";
 
 const filesDir = path.join(__dirname, "files");
 const usersFile = path.join(filesDir, "users.csv");
+const USERS_HEADER = "Email,Date\n";
 
-function ensureCsv(filePath: string, header: string) {
-  try {
-    if (!fs.existsSync(filesDir)) {
-      fs.mkdirSync(filesDir, { recursive: true });
+/**
+ * Simple per-file append queue to serialize writes and avoid races.
+ */
+class CsvAppender {
+  private filePath: string;
+  private header: string;
+  private queue: Promise<void> = Promise.resolve();
+
+  constructor(filePath: string, header: string) {
+    this.filePath = filePath;
+    this.header = header;
+  }
+
+  private async ensureFile() {
+    await fs.promises.mkdir(path.dirname(this.filePath), { recursive: true });
+    try {
+      await fs.promises.access(this.filePath, fs.constants.F_OK);
+    } catch {
+      // File missing — create with header
+      await fs.promises.writeFile(this.filePath, this.header, "utf8");
     }
-    if (!fs.existsSync(filePath)) {
-      fs.writeFileSync(filePath, header, "utf8");
-    }
-  } catch (err) {
-    console.error("❌ Error ensuring CSV file:", err);
+  }
+
+  private escape(value: string): string {
+    return `"${String(value).replace(/"/g, '""')}"`;
+  }
+
+  append(fields: string[]): Promise<void> {
+    // Chain the append onto the queue so appends run sequentially
+    this.queue = this.queue.then(async () => {
+      await this.ensureFile();
+      const line = fields.map((f) => this.escape(f)).join(",") + "\n";
+      await fs.promises.appendFile(this.filePath, line, "utf8");
+    });
+    return this.queue;
   }
 }
 
-function escapeCsv(value: string): string {
-  // Per CSV rules, wrap in quotes and double any internal quotes
-  return `"${String(value).replace(/"/g, '""')}"`;
+const userAppender = new CsvAppender(usersFile, USERS_HEADER);
+
+function validateEmail(email: string): boolean {
+  // Simple, permissive regex for common email formats. Replace with stronger validation if needed.
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 /**
- * Log a user signup (email and timestamp) to server/files/users.csv
- * Header: Email,Date
+ * Log a user signup (email and ISO timestamp) into server/files/users.csv
+ * Returns a Promise that resolves when the write is complete or rejects with an error.
  */
-export function logUserSignup(email: string): void {
-  ensureCsv(usersFile, "Email,Date\n");
+export async function logUserSignup(email: string): Promise<void> {
+  if (!email || typeof email !== "string") {
+    throw new TypeError("email must be a non-empty string");
+  }
+  if (!validateEmail(email)) {
+    throw new Error("invalid email format");
+  }
 
   const now = new Date().toISOString();
-  const record = `${escapeCsv(email)},${escapeCsv(now)}\n`;
-
-  try {
-    // Using synchronous append keeps it simple and predictable for a small logger
-    fs.appendFileSync(usersFile, record, "utf8");
-    console.log("✅ User signup logged:", email);
-  } catch (err) {
-    console.error("❌ Error logging user signup:", err);
-  }
+  await userAppender.append([email, now]);
 }
