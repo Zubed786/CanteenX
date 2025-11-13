@@ -33,6 +33,18 @@ const App: React.FC = () => {
     //     root.classList.add(theme);
     // }, [theme]);
     useEffect(() => {
+        const root = document.documentElement;
+
+        if (theme === "dark") {
+            root.classList.add("dark");
+            root.classList.remove("light");
+        } else {
+            root.classList.add("light");
+            root.classList.remove("dark");
+        }
+    }, [theme]);
+
+    useEffect(() => {
         setFoodItems(MOCK_FOOD_ITEMS);
     }, []);
     useEffect(() => {
@@ -61,6 +73,29 @@ const App: React.FC = () => {
         };
 
         fetchOrders();
+    }, [currentUser]);
+    // 🔄 Auto-refresh orders every 5 seconds
+    useEffect(() => {
+        if (!currentUser) return;
+
+        const interval = setInterval(() => {
+            fetch(`http://localhost:5000/api/orders/${currentUser.email}`)
+                .then(res => res.json())
+                .then(data => {
+                    const formattedOrders = data.map((order: any) => ({
+                        id: order._id,
+                        items: order.items,
+                        totalAmount: order.totalAmount,
+                        status: order.status as OrderStatus,
+                        date: order.date || order.createdAt,
+                        userDetails: order.userDetails,
+                    }));
+                    setOrders(formattedOrders);
+                })
+                .catch(err => console.error("Polling error:", err));
+        }, 5000);
+
+        return () => clearInterval(interval);
     }, [currentUser]);
 
 

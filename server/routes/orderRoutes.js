@@ -32,7 +32,31 @@ router.post("/", async (req, res) => {
     });
 
     await newOrder.save();
+
+    // -----------------------------------------
+    // 🚀 AUTOMATIC ORDER STATUS PROGRESSION
+    // -----------------------------------------
+
+    // After 10 sec → PREPARING
+    setTimeout(async () => {
+      await Order.findByIdAndUpdate(newOrder._id, { status: "PREPARING" });
+      console.log(`Order ${newOrder._id} → PREPARING`);
+    }, 5000);
+
+    // After 20 sec → READY
+    setTimeout(async () => {
+      await Order.findByIdAndUpdate(newOrder._id, { status: "READY" });
+      console.log(`Order ${newOrder._id} → READY`);
+    }, 10000);
+
+    // After 30 sec → COMPLETED
+    setTimeout(async () => {
+      await Order.findByIdAndUpdate(newOrder._id, { status: "COMPLETED" });
+      console.log(`Order ${newOrder._id} → COMPLETED`);
+    }, 15000);
+
     res.status(201).json({ message: "Order placed successfully", newOrder });
+
   } catch (error) {
     console.error("Error saving order:", error);
     res.status(500).json({ message: "Server error", error: error.message });
