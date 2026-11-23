@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, Dish, Line, money, readSaved, User } from "./domain";
+import AddButton from "./components/AddButton";
 import Account from "./components/Account";
 import Storefront from "./components/Storefront";
 import Tickets from "./components/Tickets";
@@ -100,15 +101,16 @@ export default function App() {
     );
   }
   function add(id: number) {
-    if (busy) return;
-    setTray((t) => {
-      const n = t.lines.find((i) => i.id === id)?.quantity || 0;
-      return fresh([
-        ...t.lines.filter((i) => i.id !== id),
-        { id, quantity: Math.min(n + 1, 20) },
-      ]);
-    });
-    setNotice("Tray updated");
+    const dish = menu.find(item => item.id === id);
+    if (busy || !dish?.inStock) return false;
+    const current = tray.lines.find(line => line.id === id)?.quantity ?? 0;
+    if (current >= 20) {
+      setNotice("You can add up to 20 per dish.");
+      return false;
+    }
+    quantity(id, current + 1);
+    setNotice(dish.name + " added to tray · " + (current + 1) + " in tray");
+    return true;
   }
   const lines = tray.lines.flatMap((l) => {
     const item = menu.find((i) => i.id === l.id);
@@ -240,13 +242,13 @@ export default function App() {
                           −
                         </button>
                         {i.quantity}
-                        <button
-                          aria-label={"Add one " + i.name}
-                          disabled={busy || i.quantity >= 20}
-                          onClick={() => quantity(i.id, i.quantity + 1)}
-                        >
-                          +
-                        </button>
+                        <AddButton
+                          variant="compact"
+                          label="+"
+                          name={"Add one " + i.name}
+                          disabled={busy || !i.inStock || i.quantity >= 20}
+                          onAdd={() => add(i.id)}
+                        />
                         {!i.inStock && <strong>Sold out</strong>}
                       </div>
                     </div>

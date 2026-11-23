@@ -1,4 +1,5 @@
 import { useState } from "react";
+import AddButton from "./AddButton";
 import { Dish, money } from "../domain";
 const categories = [
   "All dishes",
@@ -16,7 +17,7 @@ export default function Storefront({
   add,
 }: {
   menu: Dish[];
-  add: (id: number) => void;
+  add: (id: number) => boolean;
 }) {
   const [category, filter] = useState(categories[0]),
     [query, search] = useState(""),
@@ -44,13 +45,13 @@ export default function Storefront({
             A crisp rice crêpe, spiced potato filling, and a side of South
             Indian comfort.
           </p>
-          <button
-            className="hero-btn"
+          <AddButton
+            variant="hero-btn"
+            label={hero?.inStock ? "Add to tray · " + money(hero.price) : "Sold out"}
+            name="Add featured Masala Dosa to tray"
             disabled={!hero?.inStock}
-            onClick={() => hero && add(hero.id)}
-          >
-            {hero?.inStock ? "Add to tray · " + money(hero.price) : "Sold out"}
-          </button>
+            onAdd={() => !!hero && add(hero.id)}
+          />
         </div>
         {hero && (
           <img className="hero-photo" src={hero.image} alt="Masala dosa" />
@@ -125,13 +126,12 @@ export default function Storefront({
                 <p>{i.description}</p>
                 <div className="spread">
                   <b>{money(i.price)}</b>
-                  <button
+                  <AddButton
+                    label={i.inStock ? "+ Add" : "Sold out"}
+                    name={"Add " + i.name + " to tray"}
                     disabled={!i.inStock}
-                    aria-label={"Add " + i.name + " to tray"}
-                    onClick={() => add(i.id)}
-                  >
-                    {i.inStock ? "+ Add" : "Sold out"}
-                  </button>
+                    onAdd={() => add(i.id)}
+                  />
                 </div>
               </div>
             </article>

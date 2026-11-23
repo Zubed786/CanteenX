@@ -1,21 +1,26 @@
 :root {
-  --paper: #f7f8f4;
+  --paper: #f7f7f6;
   --card: #fff;
-  --ink: #18382e;
-  --muted: #55675d;
-  --edge: #d6dfd6;
-  --soft: #edf2e9;
-  --green: #183f32;
-  --lime: #e1f49b;
+  --ink: #202a37;
+  --muted: #546171;
+  --edge: #d9dfe5;
+  --soft: #eff2f5;
+  --action: #283c51;
+  --sand: #f3cfac;
+  --accent: #914623;
+  --success: #23634b;
+  accent-color: var(--accent);
   color-scheme: light;
 }
 :root[data-theme="dark"] {
-  --paper: #17251f;
-  --card: #20332a;
-  --ink: #eff4e8;
-  --muted: #bdcabc;
-  --edge: #47594c;
-  --soft: #304535;
+  --paper: #151b22;
+  --card: #202933;
+  --ink: #f2f4f7;
+  --muted: #b7c3d0;
+  --edge: #475360;
+  --soft: #303d49;
+  --accent: #efb88f;
+  --action: #394f68;
   color-scheme: dark;
 }
 * {
@@ -93,14 +98,14 @@ footer {
   letter-spacing: -0.075em;
 }
 .brand > span:last-child {
-  color: #63883b;
+  color: var(--accent);
 }
 .mark {
-  background: var(--green);
+  background: var(--action);
   border-radius: 12px;
   display: inline-grid;
   place-items: center;
-  color: var(--lime);
+  color: var(--sand);
   width: 40px;
   height: 40px;
   margin-right: 0.6rem;
@@ -139,7 +144,7 @@ main {
 .hero {
   display: grid;
   grid-template-columns: 1fr 45%;
-  background: #153e30;
+  background: #23364a;
   color: #fff;
   border-radius: 20px;
   overflow: hidden;
@@ -154,7 +159,7 @@ small {
   color: var(--muted);
 }
 .hero small {
-  color: #dceda6;
+  color: var(--sand);
 }
 .sun {
   font-size: 1.25rem;
@@ -171,15 +176,15 @@ small {
   margin: 1rem 0;
 }
 .hero h1 span {
-  color: var(--lime);
+  color: var(--sand);
 }
 .hero p {
   max-width: 30ch;
-  color: #e3ede3;
+  color: #e2e8ef;
 }
 .hero-btn {
-  background: var(--lime);
-  color: #153a29;
+  background: var(--sand);
+  color: #30261f;
   border: 0;
   margin-top: 0.45rem;
   padding: 0.65rem 1rem;
@@ -232,7 +237,7 @@ textarea {
   padding: 0.4rem 0.8rem;
 }
 .filters [aria-pressed="true"] {
-  background: var(--green);
+  background: var(--action);
   color: white;
 }
 .filters label {
@@ -271,8 +276,8 @@ dialog {
 .tag,
 .count {
   border-radius: 99px;
-  background: #f3f8e9;
-  color: #264734;
+  background: var(--soft);
+  color: var(--ink);
   padding: 0.18rem 0.6rem;
   font-size: 0.8rem;
   font-weight: 700;
@@ -342,7 +347,7 @@ dialog h2 {
   max-width: 23ch;
 }
 .primary {
-  background: var(--green);
+  background: var(--action);
   color: white;
   width: 100%;
   padding: 0.75rem;
@@ -413,7 +418,7 @@ dialog {
   color: var(--ink);
 }
 dialog::backdrop {
-  background: #0a201aaa;
+  background: #131e2aaa;
 }
 .link {
   border: 0;
@@ -424,7 +429,7 @@ dialog::backdrop {
   bottom: 1rem;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--green);
+  background: var(--action);
   color: white;
   padding: 0.7rem 1.3rem;
   border-radius: 10px;
@@ -481,7 +486,7 @@ footer {
     position: fixed;
     bottom: 0.7rem;
     right: 3%;
-    background: var(--green);
+    background: var(--action);
     color: white;
     padding: 0.65rem 1rem;
     border-radius: 99px;
@@ -545,4 +550,28 @@ footer {
   .brand {
     font-size: 1.45rem;
   }
+}
+
+.add-button {
+  display: inline-grid;
+  place-items: center;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+.add-button > span { grid-area: 1 / 1; }
+.add-confirmation, .is-added .add-label { visibility: hidden; }
+.add-button.is-added {
+  background: var(--success);
+  color: white;
+  border-color: var(--success);
+}
+.is-added .add-confirmation {
+  visibility: visible;
+  animation: add-confirm 240ms ease-out;
+}
+@keyframes add-confirm {
+  from { opacity: 0; transform: translateY(3px) scale(.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .add-button, .is-added .add-confirmation { transition: none; animation: none; }
 }
