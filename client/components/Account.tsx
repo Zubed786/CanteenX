@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-import { api, User } from "../domain";
+import { useState } from "react";
+import { User } from "../domain";
+import { api } from "../api";
 export default function Account({
   close,
   login,
@@ -7,21 +8,16 @@ export default function Account({
   close: () => void;
   login: (user: User) => void;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
   const [create, setCreate] = useState(false),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
-  useEffect(() => {
-    const dialog = ref.current!;
-    dialog.showModal();
-    return () => dialog.close();
-  }, []);
+  const [showPassword, setShowPassword] = useState(false);
   return (
-    <dialog ref={ref} onCancel={close} aria-labelledby="auth-title">
+    <section className="panel account-page" aria-labelledby="auth-title">
       <div className="spread">
         <small>CANTEENX ACCOUNT</small>
-        <button onClick={close} aria-label="Close sign in">
-          ×
+        <button disabled={busy} onClick={close}>
+          Go back
         </button>
       </div>
       <h2 id="auth-title">{create ? "Create an account" : "Welcome back"}</h2>
@@ -60,13 +56,20 @@ export default function Account({
           Password
           <input
             name="password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             minLength={10}
             maxLength={128}
             required
             autoComplete={create ? "new-password" : "current-password"}
           />
         </label>
+        <button
+          type="button"
+          className="link"
+          onClick={() => setShowPassword(!showPassword)}
+        >
+          {showPassword ? "Hide password" : "Show password"}
+        </button>
         {create && <p>Use at least 10 characters.</p>}
         {error && <p role="alert">{error}</p>}
         <button className="primary" disabled={busy}>
@@ -84,6 +87,6 @@ export default function Account({
           ? "Already registered? Sign in"
           : "New to CanteenX? Create an account"}
       </button>
-    </dialog>
+    </section>
   );
 }

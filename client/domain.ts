@@ -2,14 +2,24 @@ export interface User {
   id: number;
   name: string;
   email: string;
-  role: "student" | "staff";
+  role: "student" | "staff" | "admin";
 }
+export const canManageKitchen = (user: User | null) =>
+  user?.role === "staff" || user?.role === "admin";
+export const dishCategories = [
+  "Meals",
+  "Snacks",
+  "Sandwiches",
+  "Salads",
+  "Drinks",
+];
 export interface Dish {
   id: number;
   name: string;
   description: string;
   price: number;
-  image: string;
+  image?: string;
+  rating?: number;
   type: string;
   category: string[];
   inStock: boolean;
@@ -21,29 +31,13 @@ export interface Line {
 export interface Ticket {
   id: number;
   name: string;
-  status: string;
+  status: keyof typeof statuses;
   created: string;
+  pickupAt: string | null;
+  readyAt: string | null;
+  instructions: string;
   total: number;
   items: (Line & { name: string; price: number })[];
-}
-export async function api<T>(
-  path: string,
-  method = "GET",
-  body?: unknown,
-): Promise<T> {
-  const response = await fetch("/api" + path, {
-    method,
-    headers: body ? { "Content-Type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const data = await response.json().catch(() => {
-    throw new Error("Cannot reach the kitchen. Try again.");
-  });
-  if (response.status === 401 && !path.startsWith("/users/")) {
-    window.dispatchEvent(new Event("session-expired"));
-  }
-  if (!response.ok) throw new Error(data.message || "Request failed.");
-  return data;
 }
 export function readSaved<T>(key: string, fallback: T): T {
   try {
@@ -53,7 +47,8 @@ export function readSaved<T>(key: string, fallback: T): T {
   }
 }
 export const money = (value: number) => "₹" + value.toLocaleString("en-IN");
-export const statuses: Record<string, string> = {
+export const ticketToken = (id: number) => "#A" + String(id).padStart(2, "0");
+export const statuses = {
   PLACED: "Queued",
   PREPARING: "Preparing",
   READY: "Ready for pickup",

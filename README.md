@@ -19,18 +19,18 @@ Open [CanteenX on localhost](http://localhost:5000). Express serves the built Re
 ## Try the full pickup flow
 
 1. Browse as a guest, add a dish, then sign in or create an account from the tray.
-2. Select **Place pickup order**. **My orders** shows the ticket number and status. Students can cancel while the kitchen has yet to start preparation.
+2. Review the tray, optionally choose a pickup time and add instructions, then select **Place pickup order**. **My orders** shows the ticket number and status. Students can cancel queued orders and reorder a previous meal.
 3. In a separate browser profile, create an account for the kitchen operator. Verify the account belongs to the operator, then grant that specific account kitchen access from the server terminal:
    ```sh
    npm run staff -- operator@example.com
    ```
-4. Refresh the operator's page and open **Kitchen**. Start preparing the ticket, mark it ready, and confirm pickup when handed over. Student tickets refresh every five seconds. The kitchen also controls sold-out dishes and reads student feedback.
+4. Refresh the operator's page and open **Kitchen**. Start preparing the ticket, optionally set a ready time estimate, mark it ready, and confirm pickup when handed over. Tickets refresh every five seconds in the active tab. Staff can create dishes, edit prices and availability, and read feedback. Add `admin` after the email in the command above to grant that role. Both roles have kitchen access.
 
 ## Development
 
-Run `npm run dev --prefix server` and `npm run dev --prefix client` in separate terminals. Open [the Vite development server](http://localhost:5173). Its API proxy targets port 5000. Run `npm test` for the isolated HTTP integration test and `npm run build` for TypeScript checks and the production bundle.
+Run `npm run dev --prefix server` and `npm run dev --prefix client` in separate terminals. Vite proxies same-origin API requests to port 5000. Copy `client/.env.example` to `client/.env` to change the proxy target. Run `npm test` for the integration tests and `npm run build` for TypeScript checks and the production bundle. GitHub Actions runs both checks. [Open the Vite development server](http://localhost:5173)
 
-The catalog lives in `server/menu.json`. Orders snapshot the names, quantities and server-side prices at checkout. Passwords use salted scrypt hashes. Session tokens are random, hashed in the database, and delivered via HTTP-only cookies. Staff privileges are granted from the host terminal.
+The starter menu in `server/menu.json` seeds SQLite. Menu edits persist in SQLite, and existing orders retain the names, quantities and prices recorded at checkout. Passwords use salted scrypt hashes. Session tokens are random, hashed in the database, and delivered via HTTP-only cookies. Sign-in and signup requests are rate-limited.
 
 ## Hosting and storage
 

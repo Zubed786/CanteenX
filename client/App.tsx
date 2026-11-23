@@ -1,9 +1,21 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, Dish, Line, money, readSaved, User } from "./domain";
+import { api } from "./api";
+import {
+  canManageKitchen,
+  Dish,
+  Line,
+  money,
+  readSaved,
+  Ticket,
+  ticketToken,
+  User,
+} from "./domain";
 import AddButton from "./components/AddButton";
 import Account from "./components/Account";
 import Storefront from "./components/Storefront";
 import Tickets from "./components/Tickets";
+import "@fontsource/poppins/latin-400.css";
+import "@fontsource/poppins/latin-600.css";
 import "./styles.css";
 
 interface Tray {
@@ -19,9 +31,9 @@ const fresh = (lines: Line[] = []): Tray => ({
   lines,
 });
 const pageFromHash = () =>
-  ["orders", "kitchen"].includes(location.hash.slice(1))
+  ["home", "menu", "cart", "orders", "kitchen"].includes(location.hash.slice(1))
     ? location.hash.slice(1)
-    : "menu";
+    : "home";
 function Mark() {
   return (
     <span className="mark" aria-hidden="true">
@@ -50,23 +62,55 @@ export default function App() {
     [savedName, setSavedName] = useState(""),
     [savedRevision, bumpSaved] = useState(0);
   const [dark, setDark] = useState(() => readSaved("cx.dark", false));
+  const [pickupMinutes, setPickupMinutes] = useState(0);
+  const [instructions, setInstructions] = useState("");
+  const [clearedTray, setClearedTray] = useState<Tray | null>(null);
+  const [lastMeal, setLastMeal] = useState<Ticket | null>(null);
+  const [acceptingOrders, setAcceptingOrders] = useState<boolean | null>(null);
   const savedKey = "cx.meals." + (user?.id ?? "guest");
   const saved = readSaved<SavedTray[]>(savedKey, []);
   useEffect(() => {
-    const expire = () => { setUser(null); setAccount(true); };
+    const expire = () => {
+      setUser(null);
+      setAccount(true);
+    };
     window.addEventListener("session-expired", expire);
     return () => window.removeEventListener("session-expired", expire);
   }, []);
+  useEffect(() => {
+    let live = true;
+    setLastMeal(null);
+    if (user && page === "home") {
+      api<Ticket[]>("/orders")
+        .then((tickets) => {
+          if (live)
+            setLastMeal(
+              tickets.find((ticket) => ticket.status === "COMPLETED") ?? null,
+            );
+        })
+        .catch(() => {});
+    }
+    return () => {
+      live = false;
+    };
+  }, [user, page]);
   function saveMeals(meals: SavedTray[]) {
     localStorage.setItem(savedKey, JSON.stringify(meals));
     bumpSaved(savedRevision + 1);
   }
-  const reloadMenu = useCallback(
-    async () => setMenu(await api<Dish[]>("/menu")),
-    [],
-  );
+  const reloadMenu = useCallback(async () => {
+    const [dishes, settings] = await Promise.all([
+      api<Dish[]>("/menu"),
+      api<{ acceptingOrders: boolean }>("/kitchen/settings"),
+    ]);
+    setMenu(dishes);
+    setAcceptingOrders(settings.acceptingOrders);
+  }, []);
   useEffect(() => {
-    const change = () => setPage(pageFromHash());
+    const change = () => {
+      setPage(pageFromHash());
+      window.scrollTo(0, 0);
+    };
     window.addEventListener("hashchange", change);
     return () => window.removeEventListener("hashchange", change);
   }, []);
@@ -76,7 +120,9 @@ export default function App() {
       .finally(() => setReady(true));
   }, [reloadMenu]);
   useEffect(() => {
-    const timer = setInterval(() => reloadMenu().catch(() => {}), 15000);
+    const timer = setInterval(() => {
+      if (!document.hidden) reloadMenu().catch(() => {});
+    }, 15000);
     return () => clearInterval(timer);
   }, [reloadMenu]);
   useEffect(() => {
@@ -88,22 +134,32 @@ export default function App() {
   }, [dark]);
   useEffect(() => {
     if (notice) {
-      const id = setTimeout(() => setNotice(""), 2600);
+      const id = setTimeout(
+        () => {
+          setNotice("");
+          setClearedTray(null);
+        },
+        clearedTray ? 5000 : 2600,
+      );
       return () => clearTimeout(id);
     }
-  }, [notice]);
+  }, [notice, clearedTray]);
   function quantity(id: number, n: number) {
-    setTray((t) =>
-      fresh([
-        ...t.lines.filter((i) => i.id !== id),
-        ...(n > 0 ? [{ id, quantity: Math.min(20, n) }] : []),
-      ]),
-    );
+    setClearedTray(null);
+    setTray((t) => {
+      if (n <= 0) return fresh(t.lines.filter((line) => line.id !== id));
+      const updated = { id, quantity: Math.min(20, n) };
+      return fresh(
+        t.lines.some((line) => line.id === id)
+          ? t.lines.map((line) => (line.id === id ? updated : line))
+          : [...t.lines, updated],
+      );
+    });
   }
   function add(id: number) {
-    const dish = menu.find(item => item.id === id);
+    const dish = menu.find((item) => item.id === id);
     if (busy || !dish?.inStock) return false;
-    const current = tray.lines.find(line => line.id === id)?.quantity ?? 0;
+    const current = tray.lines.find((line) => line.id === id)?.quantity ?? 0;
     if (current >= 20) {
       setNotice("You can add up to 20 per dish.");
       return false;
@@ -118,6 +174,30 @@ export default function App() {
   });
   const total = lines.reduce((s, i) => s + i.price * i.quantity, 0),
     count = lines.reduce((s, i) => s + i.quantity, 0);
+  function reorder(previous: Line[]) {
+    const available = previous.filter((line) =>
+      menu.some((item) => item.id === line.id && item.inStock),
+    );
+    if (!available.length) {
+      setError("The dishes from this order are currently unavailable.");
+      return;
+    }
+    setClearedTray(null);
+    setTray(
+      fresh(
+        available.map(({ id, quantity }) => ({
+          id,
+          quantity: Math.min(20, quantity),
+        })),
+      ),
+    );
+    setError(
+      available.length === previous.length
+        ? ""
+        : "Some dishes are unavailable. Review your tray before checking out.",
+    );
+    location.hash = "cart";
+  }
   async function place() {
     if (!user) {
       setAccount(true);
@@ -129,10 +209,14 @@ export default function App() {
       const ticket = await api<{ id: number }>("/orders", "POST", {
         items: tray.lines,
         requestKey: tray.key,
+        pickupMinutes,
+        instructions,
       });
       setTray(fresh());
       location.hash = "orders";
-      setNotice("Ticket #" + ticket.id + " placed");
+      setPickupMinutes(0);
+      setInstructions("");
+      setNotice("Ticket " + ticketToken(ticket.id) + " placed");
     } catch (e) {
       setError((e as Error).message);
       await reloadMenu().catch(() => {});
@@ -145,6 +229,9 @@ export default function App() {
       await api("/logout", "POST", {});
       setUser(null);
       setTray(fresh());
+      setClearedTray(null);
+      setInstructions("");
+      setPickupMinutes(0);
       location.hash = "menu";
     } catch (e) {
       setError((e as Error).message);
@@ -154,40 +241,67 @@ export default function App() {
     <>
       <header>
         <div className="top">
-          <a href="#menu" className="brand">
+          <a href="#home" className="brand">
             <Mark />
             Canteen<span>X</span>
           </a>
           <nav aria-label="Main">
             {[
+              "home",
               "menu",
               "orders",
-              ...(user?.role === "staff" ? ["kitchen"] : []),
+              ...(canManageKitchen(user) ? ["kitchen"] : []),
             ].map((p) => (
               <a
                 key={p}
                 href={"#" + p}
                 aria-current={page === p ? "page" : undefined}
               >
-                {p === "menu"
-                  ? "Menu"
-                  : p === "orders"
-                    ? "My orders"
-                    : "Kitchen"}
+                {p === "home"
+                  ? "Home"
+                  : p === "menu"
+                    ? "Menu"
+                    : p === "orders"
+                      ? "My orders"
+                      : "Kitchen"}
               </a>
             ))}
           </nav>
           <div className="actions">
-            <button
-              title="Switch theme"
-              aria-label="Switch theme"
-              onClick={() => setDark(!dark)}
+            {user ? (
+              <details className="profile">
+                <summary>Account</summary>
+                <div className="profile-links">
+                  <a href="#orders">My orders</a>
+                  {canManageKitchen(user) && (
+                    <a href="#kitchen">Kitchen dashboard</a>
+                  )}
+                  <button onClick={() => setDark(!dark)}>
+                    {dark ? "Light mode" : "Dark mode"}
+                  </button>
+                  <button disabled={busy} onClick={logout}>
+                    Sign out
+                  </button>
+                </div>
+              </details>
+            ) : (
+              <>
+                <button
+                  aria-label="Switch theme"
+                  onClick={() => setDark(!dark)}
+                >
+                  {dark ? "☀" : "☾"}
+                </button>
+                <button onClick={() => setAccount(true)}>Sign in</button>
+              </>
+            )}
+            <a
+              className="top-tray"
+              href="#cart"
+              onClick={() => setAccount(false)}
             >
-              {dark ? "☀" : "☾"}
-            </button>
-            <button disabled={busy} onClick={() => (user ? logout() : setAccount(true))}>
-              {user ? "Sign out" : "Sign in"}
-            </button>
+              Tray <span className="count">{count}</span> {money(total)}
+            </a>
           </div>
         </div>
       </header>
@@ -206,14 +320,62 @@ export default function App() {
             </button>
           </div>
         )}
-        {!ready || !menu.length ? (
-          <p>{ready ? "Menu unavailable." : "Opening the kitchen…"}</p>
-        ) : page === "menu" ? (
-          <div className="layout">
-            <div>
-              <Storefront menu={menu} add={add} />
+        {account ? (
+          <Account
+            close={() => setAccount(false)}
+            login={(u) => {
+              setUser(u);
+              setAccount(false);
+              setError("");
+              setNotice("Signed in as " + u.name);
+            }}
+          />
+        ) : !ready || !menu.length ? (
+          ready ? (
+            <p>Menu unavailable.</p>
+          ) : (
+            <div className="cards" aria-label="Loading menu" aria-busy="true">
+              {[1, 2, 3].map((id) => (
+                <div className="skeleton-card" key={id} />
+              ))}
             </div>
-            <aside id="tray">
+          )
+        ) : ["home", "menu", "cart"].includes(page) ? (
+          <div className="layout">
+            {page !== "cart" && (
+              <div>
+                {page === "home" && acceptingOrders !== null && (
+                  <p className="kitchen-status">
+                    {acceptingOrders
+                      ? "Kitchen open for orders"
+                      : "Kitchen closed to new orders"}
+                  </p>
+                )}
+                {page === "home" && lastMeal && (
+                  <div className="spread panel last-meal">
+                    <span>Order your last meal again</span>
+                    <button onClick={() => reorder(lastMeal.items)}>
+                      Reorder
+                    </button>
+                  </div>
+                )}
+                <Storefront
+                  menu={menu}
+                  add={add}
+                  lines={tray.lines}
+                  quantity={quantity}
+                  busy={busy}
+                  home={page === "home"}
+                />
+              </div>
+            )}
+            <section
+              className={
+                page === "cart"
+                  ? "tray-items panel"
+                  : "tray-items tray-preview panel"
+              }
+            >
               <small>COUNTER PICKUP</small>
               <div className="spread">
                 <h2>Your tray</h2>
@@ -224,6 +386,9 @@ export default function App() {
                   <Mark />
                   <h3>Your tray is empty</h3>
                   <p>Add a dish from the menu to start your order.</p>
+                  <a className="outline-link" href="#menu">
+                    Browse menu
+                  </a>
                 </div>
               ) : (
                 <div>
@@ -250,86 +415,156 @@ export default function App() {
                           onAdd={() => add(i.id)}
                         />
                         {!i.inStock && <strong>Sold out</strong>}
+                        <button
+                          className="remove-line"
+                          type="button"
+                          aria-label={"Remove " + i.name + " from tray"}
+                          disabled={busy}
+                          onClick={() => quantity(i.id, 0)}
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            aria-hidden="true"
+                          >
+                            <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 10v7m4-7v7" />
+                          </svg>
+                        </button>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
-              <div className="spread total">
-                <span>Total</span>
-                <b>{money(total)}</b>
-              </div>
-              <p className="payment">Pay at the pickup counter</p>
-              <button
-                className="primary"
-                disabled={busy || !count || lines.some((i) => !i.inStock)}
-                onClick={place}
-              >
-                {busy
-                  ? "Placing order…"
-                  : user
-                    ? "Place pickup order"
-                    : "Sign in to order"}
-              </button>
-              {user && (
-                <details>
-                  <summary>Saved trays</summary>
-                  {saved.map((s, n) => (
-                    <div className="spread line" key={n}>
-                      <button
-                        disabled={busy}
-                        onClick={() => setTray(fresh(s.lines))}
-                      >
-                        {s.name}
-                      </button>
-                      <button
-                        aria-label={"Delete " + s.name}
-                        onClick={() =>
-                          saveMeals(saved.filter((_, j) => j !== n))
-                        }
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      if (count && savedName.trim()) {
-                        saveMeals([
-                          ...saved,
-                          { name: savedName.trim(), lines: tray.lines },
-                        ]);
-                        setSavedName("");
-                        setNotice("Tray saved");
-                      }
-                    }}
-                  >
-                    <label>
-                      Save current tray
-                      <input
-                        value={savedName}
-                        onChange={(e) => setSavedName(e.target.value)}
-                        required
-                        maxLength={40}
-                        placeholder="Lunch between classes"
-                      />
-                    </label>
-                    <button disabled={!count}>Save tray</button>
-                  </form>
-                </details>
+              {page === "cart" && count > 0 && (
+                <button
+                  disabled={busy}
+                  onClick={() => {
+                    setClearedTray(tray);
+                    setTray(fresh());
+                    setNotice("Tray cleared");
+                  }}
+                >
+                  Clear tray
+                </button>
               )}
-            </aside>
-            <a
-              className="mobile-tray"
-              href="#tray"
-              onClick={(e) => {
-                e.preventDefault();
-                document.getElementById("tray")?.scrollIntoView();
-              }}
-            >
-              Your tray · {count} · {money(total)}
-            </a>
+              {page !== "cart" && (
+                <a className="outline-link" href="#cart">
+                  Review tray · {money(total)}
+                </a>
+              )}
+            </section>
+            {page === "cart" && (
+              <aside className="order-summary" aria-label="Order summary">
+                <h2>Order summary</h2>
+                <div className="checkout-fields">
+                  <label>
+                    Pickup time
+                    <select
+                      disabled={busy}
+                      value={pickupMinutes}
+                      onChange={(e) => {
+                        setPickupMinutes(Number(e.target.value));
+                        setTray((t) => fresh(t.lines));
+                      }}
+                    >
+                      <option value={0}>As soon as possible</option>
+                      <option value={15}>In 15 minutes</option>
+                      <option value={30}>In 30 minutes</option>
+                    </select>
+                  </label>
+                  <label>
+                    Special instructions (optional)
+                    <textarea
+                      disabled={busy}
+                      maxLength={240}
+                      value={instructions}
+                      onChange={(e) => {
+                        setInstructions(e.target.value);
+                        setTray((t) => fresh(t.lines));
+                      }}
+                    />
+                  </label>
+                </div>
+                <div className="checkout-action">
+                  <div className="spread total">
+                    <span>Total</span>
+                    <b>{money(total)}</b>
+                  </div>
+                  <p className="payment">Pay at the pickup counter</p>
+                  <button
+                    className="primary"
+                    disabled={
+                      busy ||
+                      !acceptingOrders ||
+                      !count ||
+                      lines.some((i) => !i.inStock)
+                    }
+                    onClick={place}
+                  >
+                    {busy && <span className="spinner" aria-hidden="true" />}
+                    {busy
+                      ? "Placing order…"
+                      : !acceptingOrders
+                        ? "Kitchen closed"
+                        : user
+                          ? "Place pickup order"
+                          : "Sign in to order"}
+                  </button>
+                </div>
+                {user && (
+                  <details>
+                    <summary>Saved trays</summary>
+                    {saved.map((s, n) => (
+                      <div className="spread line" key={n}>
+                        <button
+                          disabled={busy}
+                          onClick={() => setTray(fresh(s.lines))}
+                        >
+                          {s.name}
+                        </button>
+                        <button
+                          aria-label={"Delete " + s.name}
+                          onClick={() =>
+                            saveMeals(saved.filter((_, j) => j !== n))
+                          }
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (count && savedName.trim()) {
+                          saveMeals([
+                            ...saved,
+                            { name: savedName.trim(), lines: tray.lines },
+                          ]);
+                          setSavedName("");
+                          setNotice("Tray saved");
+                        }
+                      }}
+                    >
+                      <label>
+                        Save current tray
+                        <input
+                          value={savedName}
+                          onChange={(e) => setSavedName(e.target.value)}
+                          required
+                          maxLength={40}
+                          placeholder="Lunch between classes"
+                        />
+                      </label>
+                      <button disabled={!count}>Save tray</button>
+                    </form>
+                  </details>
+                )}
+              </aside>
+            )}
           </div>
         ) : !user ? (
           <section className="workspace">
@@ -337,7 +572,7 @@ export default function App() {
             <p>Sign in to see your pickup tickets.</p>
             <button onClick={() => setAccount(true)}>Sign in</button>
           </section>
-        ) : page === "kitchen" && user.role !== "staff" ? (
+        ) : page === "kitchen" && !canManageKitchen(user) ? (
           <p>Kitchen access required.</p>
         ) : (
           <Tickets
@@ -345,6 +580,8 @@ export default function App() {
             kitchen={page === "kitchen"}
             menu={menu}
             reloadMenu={reloadMenu}
+            acceptingOrders={acceptingOrders === true}
+            reorder={reorder}
           />
         )}
       </main>
@@ -352,19 +589,38 @@ export default function App() {
         <b>CanteenX</b>
         <span>Campus kitchen · Counter pickup</span>
       </footer>
-      {account && (
-        <Account
-          close={() => setAccount(false)}
-          login={(u) => {
-            setUser(u);
-            setAccount(false);
-            setNotice("Signed in as " + u.name);
-          }}
-        />
-      )}
+      <nav className="bottom-nav" aria-label="Mobile navigation">
+        {Object.entries({
+          home: "Home",
+          menu: "Menu",
+          cart: "Tray",
+          orders: "Orders",
+        }).map(([id, label]) => (
+          <a
+            key={id}
+            href={"#" + id}
+            aria-current={page === id ? "page" : undefined}
+            onClick={() => setAccount(false)}
+          >
+            {label}
+            {id === "cart" && <span className="count">{count}</span>}
+          </a>
+        ))}
+      </nav>
       {notice && (
         <div className="toast" role="status">
           {notice}
+          {clearedTray && !count && (
+            <button
+              onClick={() => {
+                setTray(clearedTray);
+                setClearedTray(null);
+                setNotice("Tray restored");
+              }}
+            >
+              Undo
+            </button>
+          )}
         </div>
       )}
     </>

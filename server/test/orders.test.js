@@ -60,8 +60,10 @@ test("student checkout and kitchen pickup", async (t) => {
   assert.equal(food.data.length, 20);
   const dish = food.data.find((i) => i.inStock);
   const order = {
-    items: [{ id: dish.id, quantity: 2 }],
+    items: [{ id: dish.id, quantity: 2, price: 1 }],
     requestKey: randomUUID(),
+    pickupMinutes: 15,
+    instructions: "Pack separately",
   };
   const created = await request("/orders", "POST", order, student);
   assert.equal(created.status, 201);
@@ -72,6 +74,11 @@ test("student checkout and kitchen pickup", async (t) => {
   const history = await request("/orders", "GET", undefined, student);
   assert.equal(history.data.length, 1);
   assert.equal(history.data[0].total, 2 * dish.price);
+  assert.equal(history.data[0].instructions, "Pack separately");
+  assert.equal(
+    Date.parse(history.data[0].pickupAt) - Date.parse(history.data[0].created),
+    900_000,
+  );
   const operator = await request("/users/signup", "POST", {
     ...creds,
     email: "staff@example.test",
@@ -83,13 +90,19 @@ test("student checkout and kitchen pickup", async (t) => {
     [],
   );
   const ticket = created.data.id;
+  const statusPath = "/orders/" + ticket + "/status";
+  assert.equal(
+    (await request(statusPath, "PATCH", { from: "PLACED" }, student)).status,
+    403,
+  );
   assert.equal(
     (await request("/orders/" + ticket + "/cancel", "PATCH", {}, staff)).status,
     409,
   );
   for (const from of ["PLACED", "PREPARING", "READY"]) {
     assert.equal(
-      (await request("/kitchen/" + ticket, "PATCH", { from }, staff)).status,
+      (await request(statusPath, "PATCH", { from, estimateMinutes: 10 }, staff))
+        .status,
       200,
     );
     assert.equal(
@@ -100,6 +113,9 @@ test("student checkout and kitchen pickup", async (t) => {
   assert.equal(
     (await request("/orders", "GET", undefined, student)).data[0].status,
     "COMPLETED",
+  );
+  assert.ok(
+    (await request("/orders", "GET", undefined, student)).data[0].readyAt,
   );
   assert.deepEqual(
     (await request("/kitchen", "GET", undefined, staff)).data,
@@ -146,6 +162,63 @@ test("student checkout and kitchen pickup", async (t) => {
   assert.equal(
     (await request("/feedback", "GET", undefined, staff)).data[0].message,
     "Enjoyed lunch",
+  );
+  const newDish = {
+    name: "Dal and rice",
+    description: "Dal with steamed rice",
+    price: 90,
+    category: ["Meals"],
+    type: "veg",
+  };
+  assert.equal((await request("/menu", "POST", newDish, student)).status, 403);
+  db.prepare("UPDATE users SET role='admin' WHERE id=?").run(operator.data.id);
+  const addedDish = await request("/menu", "POST", newDish, staff);
+  assert.equal(addedDish.status, 201);
+  const addedDishPath = "/menu/" + addedDish.data.id;
+  assert.equal(
+    (await request(addedDishPath, "PUT", { ...newDish, price: 85 }, staff))
+      .status,
+    200,
+  );
+  const newOrder = await request(
+    "/orders",
+    "POST",
+    {
+      items: [{ id: addedDish.data.id, quantity: 2 }],
+      requestKey: randomUUID(),
+    },
+    student,
+  );
+  assert.equal(newOrder.status, 201);
+  const closed = await request(
+    "/kitchen/settings",
+    "PATCH",
+    { acceptingOrders: false },
+    staff,
+  );
+  assert.equal(closed.status, 200);
+  assert.equal(
+    (await request("/kitchen/settings")).data.acceptingOrders,
+    false,
+  );
+  assert.equal(
+    (
+      await request(
+        "/orders",
+        "POST",
+        { ...order, requestKey: randomUUID() },
+        student,
+      )
+    ).status,
+    409,
+  );
+  assert.deepEqual(
+    (await request("/orders", "POST", order, student)).data,
+    created.data,
+  );
+  assert.equal(
+    (await request("/orders", "GET", undefined, student)).data[0].total,
+    170,
   );
   await request("/logout", "POST", {}, student);
   assert.equal(

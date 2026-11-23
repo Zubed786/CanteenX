@@ -3,8 +3,6 @@ import { promisify } from "node:util";
 const derive = promisify(scrypt);
 export const digest = (value) =>
   createHash("sha256").update(value).digest("hex");
-export const validPassword = (value) =>
-  typeof value === "string" && value.length >= 10 && value.length <= 128;
 export async function hashPassword(password) {
   const salt = randomBytes(16).toString("hex");
   const key = await derive(password, salt, 64);
