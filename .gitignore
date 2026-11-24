@@ -46,3 +46,4 @@ server/dist/
 # Misc
 *.vercel
 *.cache
+server/data/

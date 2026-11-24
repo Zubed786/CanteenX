@@ -1,0 +1,14 @@
+{
+  "name": "canteenx-campus-kitchen",
+  "private": true,
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "setup": "npm ci --prefix server && npm ci --prefix client",
+    "build": "npm run build --prefix client",
+    "start": "npm start --prefix server",
+    "test": "node --test server/test/*.test.js",
+    "staff": "npm --prefix server run staff --"
+  }
+}
